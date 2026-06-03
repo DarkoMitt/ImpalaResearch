@@ -21,22 +21,40 @@
                 ];
             @endphp
 
-            @foreach ($methods as $method)
+            @foreach ($methods as $item)
                 <button
                     type="button"
-                    class="method-card flex min-h-[72px] w-full items-center justify-between rounded-[4px] border border-[#CFCFCF] bg-white px-6 py-4 transition hover:border-[#33B6FF] hover:shadow-sm"
+                    @click="method = '{{ $item[0] }}'"
+                    :class="method === '{{ $item[0] }}'
+                        ? 'border-[#33B6FF] ring-2 ring-[#33B6FF]/20'
+                        : 'border-[#CFCFCF]'"
+                    class="flex min-h-[72px] w-full items-center justify-between rounded-[4px] border bg-white px-6 py-4 text-left transition hover:border-[#33B6FF]"
                 >
-                    <div>
-                        <h3 class="text-[17px] font-medium text-[#2F2F32]">{{ $method[0] }}</h3>
-                        <p class="mt-3 text-[12px] leading-[1.35] text-[#555555]">{{ $method[1] }}</p>
+                    <div class="pr-6">
+                        <h3 class="text-[17px] font-medium leading-none text-[#2F2F32]">
+                            {{ $item[0] }}
+                        </h3>
+
+                        <p class="mt-4 text-[12px] leading-[1.35] text-[#555555]">
+                            {{ $item[1] }}
+                        </p>
                     </div>
 
-                    <span class="method-radio h-7 w-7 rounded-full border border-[#CFCFCF]"></span>
+                    <span
+                        :class="method === '{{ $item[0] }}'
+                            ? 'border-[#33B6FF] bg-[#33B6FF] after:absolute after:left-1/2 after:top-1/2 after:h-[15px] after:w-[15px] after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white'
+                            : 'border-[#CFCFCF] bg-white'"
+                        class="relative shrink-0 h-7 w-7 rounded-full border"
+                    ></span>
                 </button>
             @endforeach
         </div>
 
-        <button class="mt-9 h-[46px] w-[260px] rounded-[3px] bg-[#33B6FF] text-[15px] font-medium text-white transition hover:bg-[#159fe4]">
+        <button
+            type="button"
+            @click="scrollTo('study-details')"
+            class="mt-9 h-[46px] w-[260px] rounded-[3px] bg-[#33B6FF] text-[15px] font-medium text-white transition hover:bg-[#159fe4]"
+        >
             Next
         </button>
     </div>
