@@ -26,7 +26,9 @@
     });
 </script>
 <body class="bg-white font-[Poppins] text-[#2F2F32]">
+    @if (!request()->routeIs('register') && !request()->routeIs('login'))
     @include('partials.navbar')
+@endif
 
     <main>
         @yield('content')

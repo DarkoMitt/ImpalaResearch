@@ -1,4 +1,4 @@
-<section class="mx-auto grid min-h-[520px] max-w-[1400px] grid-cols-1 items-center gap-14 px-8 pt-4 pb-4 lg:grid-cols-2 lg:px-20">    <div class="max-w-[650px]">
+<!-- <section class="mx-auto grid min-h-[520px] max-w-[1400px] grid-cols-1 items-center gap-14 px-8 pt-4 pb-4 lg:grid-cols-2 lg:px-20">    <div class="max-w-[650px]">
         <h2 class="text-[42px] font-extrabold leading-[1.12] tracking-[-1.5px] text-black md:text-[52px]">
             Design Your<br>
             Research<br>
@@ -21,4 +21,4 @@
     <div class="flex justify-center lg:justify-end">
         <div class="h-[390px] w-full max-w-[436px] bg-[#D9D9D9]"></div>
     </div>
-</section>
+</section> -->

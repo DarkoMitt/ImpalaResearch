@@ -28,10 +28,11 @@
         }"
     >
         @include('partials.hero')
-        @include('partials.study')
+        <!-- @include('partials.study') -->
         @include('partials.study-builder')
         @include('partials.method-section')
         @include('partials.study-details')
         @include('partials.submit-request')
+        @include('partials.footer')
     </div>
 @endsection
