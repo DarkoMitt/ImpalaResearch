@@ -57,3 +57,151 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+# Impala Research Website Redesign
+
+## Overview
+
+This project is a redesign and frontend implementation of the Impala Research website based on the provided Figma design.
+
+The goal of the project is to modernize the existing website, improve the user experience, and prepare the platform for future backend integrations.
+
+---
+
+## Technology Stack
+
+* Laravel 12
+* Blade Templates
+* Tailwind CSS
+* Alpine.js
+
+---
+
+## Implemented Features
+
+### Home Page
+
+* Responsive navigation
+* Hero section
+* Impala Infinity Study Builder
+* Goal selection
+* Research method selection
+* Audience selection
+* Study details form
+* Study review page
+* Request submission flow
+* Dynamic study summary
+* Footer section
+
+### Contact Page
+
+* Responsive contact form
+* Form validation
+* Country selection dropdown
+* Demo request simulation
+
+### Authentication Pages
+
+* Register page
+* Login page
+* Client-side validation
+* Password requirements validation
+* Email validation
+
+### Footer
+
+* Navigation links
+* Social links placeholders
+* Email subscription form
+* Subscription validation
+
+---
+
+## Current Scope
+
+This version focuses on frontend implementation and user experience.
+
+The following features are currently implemented as prototypes:
+
+* User registration
+* User login
+* Demo scheduling
+* Study request submission
+* Email subscription
+
+Database integration and backend functionality can be connected in future development phases.
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+```
+
+Install PHP dependencies:
+
+```bash
+composer install
+```
+
+Install Node dependencies:
+
+```bash
+npm install
+```
+
+Create environment file:
+
+```bash
+cp .env.example .env
+```
+
+Generate application key:
+
+```bash
+php artisan key:generate
+```
+
+Run the application:
+
+```bash
+php artisan serve
+npm run dev
+```
+
+Application will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+---
+
+## Notes
+
+This implementation follows the provided Figma design and serves as a frontend foundation for future platform development.
+
+Additional features such as:
+
+* User management
+* Admin panel
+* Authentication backend
+* Database storage
+* Email notifications
+* Content management
+
+can be integrated in future project phases.
+
+---
+
+## Developed By
+
+Darko Mitovski
+
+Software Engineering Student
+Brainster Next College
+
