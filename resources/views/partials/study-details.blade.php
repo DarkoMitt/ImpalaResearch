@@ -1,55 +1,75 @@
-<section id="study-details" class="bg-white py-20">
-    <div class="mx-auto max-w-[980px] px-6 text-center">
-        <img src="{{ asset('images/logo.svg') }}" alt="Impala" class="mx-auto h-[55px] w-auto">
+<section
+    id="study-details"
+    class="scroll-mt-[74px] bg-white px-6 py-[110px] md:px-10 lg:px-0"
+>
+    <div class="mx-auto w-full max-w-[980px] text-center">
 
-        <x-stepper :active="3" />
-
-        <h2 class="mt-8 text-[30px] font-bold text-[#2F2F32]">
+        {{-- Heading --}}
+        <h2
+            class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]"
+        >
             Tell us about your study
         </h2>
 
-        <p class="mx-auto mt-3 max-w-[420px] text-[14px] leading-[1.5] text-[#6F6F6F]">
+        {{-- Description --}}
+        <p
+            class="mx-auto mt-[16px] max-w-[420px] text-[13px] leading-[1.5] text-[#686868]"
+        >
             These details help us tailor the study for you.
         </p>
 
-        <form class="mx-auto mt-8 max-w-[862px] text-left">
-            <div class="grid gap-6 md:grid-cols-2">
+        {{-- Form --}}
+        <form
+            class="mx-auto mt-[76px] max-w-[790px] text-left"
+        >
+            <div class="grid gap-x-[48px] gap-y-[24px] md:grid-cols-2">
+
+                {{-- Country --}}
                 <label class="block">
-                    <span class="text-[14px] font-medium text-[#2F2F32]">Target Market / Country</span>
-                    <select x-model="country" class="mt-3 h-[48px] w-full rounded-[3px] border border-[#CFCFCF] bg-white px-4 text-[13px] text-[#8A8A8A] outline-none focus:border-[#33B6FF]">
+                    <span class="text-[13px] font-normal text-[#242424]">
+                        Target Market / Country
+                    </span>
+
+                    <select
+                        x-model="country"
+                        class="mt-[10px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] bg-white px-[14px] text-[12px] text-[#6F6F6F] outline-none transition focus:border-[#4D7FCF]"
+                    >
                         <option value="">Select Country</option>
-                        <option>North Macedonia</option>
-                        <option>United States</option>
-                        <option>Germany</option>
-                        <option>United Kingdom</option>
+                        <option value="North Macedonia">North Macedonia</option>
+                        <option value="United States">United States</option>
+                        <option value="Germany">Germany</option>
+                        <option value="United Kingdom">United Kingdom</option>
                     </select>
                 </label>
 
+                {{-- Target Audience --}}
                 <label class="block">
-                    <span class="text-[14px] font-medium text-[#2F2F32]">Target Audience</span>
+                    <span class="text-[13px] font-normal text-[#242424]">
+                        Target Audience
+                    </span>
+
                     <input
                         type="text"
-                        placeholder="e.g US Adults 18–65"
                         x-model="audience"
-                        class="mt-3 h-[48px] w-full rounded-[3px] border border-[#CFCFCF] px-4 text-[13px] outline-none placeholder:text-[#8A8A8A] focus:border-[#33B6FF]"
+                        placeholder="e.g US Adults 18–65"
+                        class="mt-[10px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] px-[14px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                     >
                 </label>
 
+                {{-- Sample Size --}}
                 <label class="block">
-                    <span class="text-[14px] font-medium text-[#2F2F32]">
+                    <span class="text-[13px] font-normal text-[#242424]">
                         Sample Size
                     </span>
 
-                    <div
-                        class="mt-3 flex h-[48px] items-center gap-4 rounded-[3px] border border-[#CFCFCF] px-4"
-                    >
+                    <div class="mt-[10px] flex h-[44px] items-center gap-[14px]">
                         <input
                             type="range"
                             min="1"
                             max="1000"
                             step="1"
                             x-model="sampleSize"
-                            class="flex-1 accent-[#33B6FF]"
+                            class="flex-1 accent-[#4D7FCF]"
                         >
 
                         <input
@@ -57,6 +77,7 @@
                             inputmode="numeric"
                             maxlength="4"
                             x-model="sampleSize"
+
                             @input="
                                 sampleSize = String(sampleSize).replace(/[^0-9]/g, '');
 
@@ -66,16 +87,12 @@
 
                                 let value = parseInt(sampleSize, 10);
 
-                                if (value < 1) {
-                                    value = 1;
-                                }
-
-                                if (value > 1000) {
-                                    value = 1000;
-                                }
+                                if (value < 1) value = 1;
+                                if (value > 1000) value = 1000;
 
                                 sampleSize = String(value);
                             "
+
                             @blur="
                                 let value = parseInt(sampleSize || 1, 10);
 
@@ -84,44 +101,55 @@
 
                                 sampleSize = String(value);
                             "
+
                             @keydown="
                                 if (['-', '+', '.', ',', 'e', 'E'].includes($event.key)) {
                                     $event.preventDefault();
                                 }
                             "
-                            class="w-[90px] rounded border border-[#CFCFCF] px-2 py-1 text-center text-[13px] outline-none focus:border-[#33B6FF]"
+
+                            class="h-[44px] w-[72px] rounded-[3px] border border-[#BFBFBF] px-2 text-center text-[12px] text-[#242424] outline-none transition focus:border-[#4D7FCF]"
                         >
                     </div>
                 </label>
 
+                {{-- Timeline --}}
                 <label class="block">
-                    <span class="text-[14px] font-medium text-[#2F2F32]">Timeline(optional)</span>
-                    <select x-model="timeline" class="mt-3 h-[48px] w-full rounded-[3px] border border-[#CFCFCF] bg-white px-4 text-[13px] text-[#8A8A8A] outline-none focus:border-[#33B6FF]">
+                    <span class="text-[13px] font-normal text-[#242424]">
+                        Timeline (optional)
+                    </span>
+
+                    <select
+                        x-model="timeline"
+                        class="mt-[10px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] bg-white px-[14px] text-[12px] text-[#6F6F6F] outline-none transition focus:border-[#4D7FCF]"
+                    >
                         <option value="">Select timeline</option>
-                        <option>1-2 weeks</option>
-                        <option>2-4 weeks</option>
-                        <option>1-2 months</option>
+                        <option value="1-2 weeks">1-2 weeks</option>
+                        <option value="2-4 weeks">2-4 weeks</option>
+                        <option value="1-2 months">1-2 months</option>
                     </select>
                 </label>
             </div>
 
-            <label class="mt-6 block">
-                <span class="text-[14px] font-medium text-[#2F2F32]">
+            {{-- Notes --}}
+            <label class="mt-[24px] block">
+                <span class="text-[12px] font-normal text-[#242424]">
                     Anything else we should know? (optional)
                 </span>
+
                 <textarea
-                    rows="4"
                     x-model="notes"
                     placeholder="Add any specific requirements or context about your study..."
-                    class="mt-3 w-full resize-none rounded-[3px] border border-[#CFCFCF] px-4 py-4 text-[13px] outline-none placeholder:text-[#8A8A8A] focus:border-[#33B6FF]"
+                    class="mt-[10px] h-[86px] w-full resize-none rounded-[3px] border border-[#BFBFBF] px-[14px] py-[12px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                 ></textarea>
             </label>
 
-            <div class="mt-9 text-center">
+            {{-- Next --}}
+            <div class="mt-[60px] text-center">
                 <button
-                    @click="scrollTo('submit-request')"
                     type="button"
-                    class="h-[46px] w-[260px] rounded-[3px] bg-[#33B6FF] text-[15px] font-medium text-white transition hover:bg-[#159fe4]"
+                    @click="scrollTo('submit-request')"
+                    class="h-[42px] w-[240px] rounded-[3px] bg-[#4D7FCF] text-[13px] font-medium text-white transition hover:bg-[#416FB4]"
                 >
                     Next
                 </button>

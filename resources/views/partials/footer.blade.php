@@ -1,87 +1,148 @@
-<footer
-    class="relative overflow-hidden bg-[#FAFAFA] border-t border-[#E5E5E5] px-8 py-20 lg:px-24"
-    x-data="{
-        email: '',
-        error: '',
-        subscribe() {
-            const pattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+<footer class="bg-[#F7F8FA] px-5 pb-[36px] pt-[54px] md:px-8">
+    <div class="mx-auto w-full max-w-[1050px]">
 
-            if (!this.email.trim()) {
-                this.error = 'Please enter your email first.';
-                return;
-            }
-
-            if (!pattern.test(this.email)) {
-                this.error = 'Please enter a valid email address.';
-                return;
-            }
-
-            window.location.href = '{{ route('register') }}?email=' + encodeURIComponent(this.email);
-        }
-    }"
->
-    <div class="mx-auto grid max-w-[1400px] gap-12 lg:grid-cols-[180px_1fr_180px]">
-
-        {{-- Logo --}}
-        <div>
-            <img
-                src="{{ asset('images/logo.svg') }}"
-                alt="Impala"
-                class="h-[55px] w-auto"
+        {{-- CTA --}}
+        <div class="flex flex-col items-center text-center">
+            <h2
+                class="text-[28px] font-semibold leading-tight tracking-[-0.7px] text-[#111111] md:text-[30px]"
             >
+                Ready to start your research?
+            </h2>
+
+            <a
+                href="#start-study"
+                class="mt-[28px] inline-flex h-[48px] w-[257px] items-center justify-center gap-2 rounded-full border border-[#BDBDBD] bg-transparent text-[14px] font-normal text-[#111111] transition hover:border-[#4D7FCF] hover:text-[#4D7FCF]"
+            >
+                Get started
+
+                <span class="text-[16px] leading-none">
+                    ›
+                </span>
+            </a>
         </div>
 
-        {{-- Middle --}}
-        <div>
-            <nav class="flex gap-14 text-[18px] font-medium text-[#2F2F32]">
-                <a href="{{ route('home') }}">Home</a>
-                <a href="#infinity">Impala Infinity</a>
-                <a href="#science">Science</a>
-                <a href="{{ route('contact') }}">Contact</a>
-            </nav>
+        {{-- Divider --}}
+        <div class="mt-[28px] h-px w-full bg-[#4DA3FF]"></div>
 
-            <p class="mt-8 max-w-[585px] text-[14px] leading-[1.5] text-[#2F2F32]">
-                The goal of the funded project is the research and development of new innovative methods for the evaluation of gaze recognition and the associated expansion of the platform. This will enable the company to develop additional market segments with an expanded range of services. Copyright impala 2025
-            </p>
+        {{-- Footer navigation --}}
+        <div
+            class="grid gap-10 pt-[35px] sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]"
+        >
+            {{-- Company description --}}
+            <div class="max-w-[260px]">
+                <h3 class="text-[13px] font-medium text-[#111111]">
+                    Impala Research
+                </h3>
 
-            <div class="relative mt-8 flex max-w-[585px] gap-3">
-                <input
-                    type="email"
-                    x-model="email"
-                    @keydown.enter="subscribe()"
-                    placeholder="Write your email"
-                    class="h-[45px] w-[376px] border border-[#CFCFCF] px-4 text-[14px] text-[#2F2F32] outline-none focus:border-[#33B6FF]"
+                <p class="mt-[18px] text-[12px] leading-[1.35] text-[#2F2F32]">
+                    Neuromarketing studies, delivered as a
+                    subscription — six methodologies, one
+                    dashboard.
+                </p>
+            </div>
+
+            {{-- Product --}}
+            <div>
+                <h3
+                    class="text-[12px] font-medium uppercase tracking-[0.02em] text-[#2F2F32]"
                 >
+                    Product
+                </h3>
 
-                <button
-                    type="button"
-                    @click="subscribe()"
-                    class="h-[45px] w-[140px] bg-[#33B6FF] text-[14px] text-white transition hover:bg-[#159fe4]"
+                <div class="mt-[22px] flex flex-col gap-[18px] text-[12px] text-[#2F2F32]">
+                    <a
+                        href="#method"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Methodologies
+                    </a>
+
+                    <a
+                        href="#pricing"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Pricing
+                    </a>
+
+                    <a
+                        href="#case-studies"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Case Studies
+                    </a>
+
+                    <a
+                        href="#sample-report"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Sample report
+                    </a>
+                </div>
+            </div>
+
+            {{-- Company --}}
+            <div>
+                <h3
+                    class="text-[12px] font-medium uppercase tracking-[0.02em] text-[#2F2F32]"
                 >
-                    Subscribe
-                </button>
+                    Company
+                </h3>
 
-                <div
-                    x-show="error"
-                    x-text="error"
-                    x-transition
-                    class="absolute -top-10 left-0 rounded border border-red-300 bg-red-50 px-3 py-2 text-[13px] text-red-600"
-                ></div>
+                <div class="mt-[22px] flex flex-col gap-[18px] text-[12px] text-[#2F2F32]">
+                    <a
+                        href="#about"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        About
+                    </a>
+
+                    <a
+                        href="#careers"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Careers
+                    </a>
+
+                    <a
+                        href="{{ route('contact') }}"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Contact us
+                    </a>
+                </div>
+            </div>
+
+            {{-- Legal --}}
+            <div>
+                <h3
+                    class="text-[12px] font-medium uppercase tracking-[0.02em] text-[#2F2F32]"
+                >
+                    Legal
+                </h3>
+
+                <div class="mt-[22px] flex flex-col gap-[18px] text-[12px] text-[#2F2F32]">
+                    <a
+                        href="#privacy-policy"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Privacy policy
+                    </a>
+
+                    <a
+                        href="#terms"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Terms of service
+                    </a>
+
+                    <a
+                        href="#data-protection"
+                        class="transition hover:text-[#4D7FCF]"
+                    >
+                        Data protection
+                    </a>
+                </div>
             </div>
         </div>
-
-        {{-- Right side --}}
-        <div class="flex items-center border-l border-[#D9D9D9] pl-6">
-            <p class="text-[20px] font-bold leading-[1.1]">
-                <span class="text-[#9B22FF]">
-                    Place to<br>build
-                </span>
-                <br>
-                <span class="text-[#2F2F32]">
-                    better<br>brands
-                </span>
-            </p>
-        </div>
-
     </div>
 </footer>

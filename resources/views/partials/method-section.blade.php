@@ -1,61 +1,167 @@
-<section id="method" class="bg-white py-20">
-    <div class="mx-auto max-w-[980px] px-6 text-center">
-        <img src="{{ asset('images/logo.svg') }}" alt="Impala" class="mx-auto h-[56px] w-auto">
+<section
+    id="method"
+    class="scroll-mt-[78px] bg-white px-6 py-[110px]"
+>
+    <div class="mx-auto w-full max-w-[1120px] text-center">
 
-        <x-stepper :active="2" />
-
-        <h2 class="mt-8 text-[30px] font-bold text-[#2F2F32]">
+        {{-- Heading --}}
+        <h2
+            class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]"
+        >
             Recommended methods for Product Research
         </h2>
 
-        <p class="mx-auto mt-3 max-w-[550px] text-[14px] leading-[1.5] text-[#6F6F6F]">
+        {{-- Description --}}
+        <p
+            class="mx-auto mt-[16px] max-w-[520px] text-[13px] leading-[1.5] text-[#686868]"
+        >
             Based on your selection, these methods will give you the most relevant insights.
         </p>
 
-        <div class="mx-auto mt-10 max-w-[862px] space-y-6 text-left">
-            @php
-                $methods = [
-                    ['Conjoint Analysis', 'Understand how people value different features and find the optimal combination.'],
-                    ['MaxDiff', 'Identify the most important features by having respondents choose the top preferences.'],
-                    ['Concept Testing', 'Validate product ideas and concepts with your target audience before launch.'],
-                ];
-            @endphp
+        @php
+            $methods = [
+                [
+                    'Eye Tracking',
+                    'Understand where people look, what captures attention, and how visual elements are viewed.'
+                ],
+                [
+                    'Clicks',
+                    'Tracks user interactions to understand engagement, navigation behavior, and decision-making.'
+                ],
+                [
+                    'Emotion Measurement',
+                    'Analyzes emotional reactions to brands, ads, products, or experiences.'
+                ],
+                [
+                    'Surveys',
+                    'Collects direct consumer feedback, opinions, attitudes, and purchase intentions.'
+                ],
+                [
+                    'RTM (Reaction Time Measurement)',
+                    'Measures reaction speed to understand automatic responses, associations, and decision-making.'
+                ],
+            ];
+        @endphp
 
-            @foreach ($methods as $item)
+        {{-- Method cards --}}
+        <div
+            class="mx-auto mt-[76px] grid max-w-[790px] gap-[12px] md:grid-cols-2"
+        >
+            @foreach ($methods as $index => $item)
+
                 <button
                     type="button"
-                    @click="method = '{{ $item[0] }}'"
-                    :class="method === '{{ $item[0] }}'
-                        ? 'border-[#33B6FF] ring-2 ring-[#33B6FF]/20'
-                        : 'border-[#CFCFCF]'"
-                    class="flex min-h-[72px] w-full items-center justify-between rounded-[4px] border bg-white px-6 py-4 text-left transition hover:border-[#33B6FF]"
-                >
-                    <div class="pr-6">
-                        <h3 class="text-[17px] font-medium leading-none text-[#2F2F32]">
-                            {{ $item[0] }}
-                        </h3>
 
-                        <p class="mt-4 text-[12px] leading-[1.35] text-[#555555]">
-                            {{ $item[1] }}
-                        </p>
+                    @click="
+                        if (methods.includes('{{ $item[0] }}')) {
+                            methods = methods.filter(
+                                item => item !== '{{ $item[0] }}'
+                            );
+                        } else {
+                            methods.push('{{ $item[0] }}');
+                        }
+                    "
+
+                    :class="
+                        methods.includes('{{ $item[0] }}')
+                            ? 'border-[#4D7FCF] bg-[#F7F9FD] ring-1 ring-[#4D7FCF]'
+                            : 'border-transparent bg-[#F5F5F5]'
+                    "
+
+                    class="
+                        min-h-[92px]
+                        rounded-[5px]
+                        border
+                        px-[20px]
+                        py-[18px]
+                        transition
+                        hover:border-[#4D7FCF]
+                        {{ $index === 4 ? 'md:col-span-2' : '' }}
+                    "
+                >
+
+                    <div class="flex h-full items-start justify-between gap-4">
+
+                        {{-- LEFT ALIGNED CONTENT --}}
+                        <div class="flex-1 text-left">
+
+                            <h3
+                                class="text-left text-[14px] font-medium text-[#242424]"
+                            >
+                                {{ $item[0] }}
+                            </h3>
+
+                            <p
+                                class="mt-[24px] text-left text-[11px] leading-[1.35] text-[#5F5F5F]"
+                            >
+                                {{ $item[1] }}
+                            </p>
+
+                        </div>
+
+                        {{-- Checkbox --}}
+                        <span
+                            class="
+                                mt-[1px]
+                                flex
+                                h-[18px]
+                                w-[18px]
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-[3px]
+                                border
+                            "
+
+                            :class="
+                                methods.includes('{{ $item[0] }}')
+                                    ? 'border-[#4D7FCF] bg-[#4D7FCF]'
+                                    : 'border-[#BFBFBF] bg-white'
+                            "
+                        >
+
+                            <svg
+                                x-show="methods.includes('{{ $item[0] }}')"
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                                class="h-[12px] w-[12px] text-white"
+                            >
+                                <path
+                                    fill-rule="evenodd"
+                                    d="M16.704 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.25-3.25a1 1 0 011.414-1.414l2.543 2.543 6.543-6.543a1 1 0 011.414 0z"
+                                    clip-rule="evenodd"
+                                />
+                            </svg>
+
+                        </span>
+
                     </div>
 
-                    <span
-                        :class="method === '{{ $item[0] }}'
-                            ? 'border-[#33B6FF] bg-[#33B6FF] after:absolute after:left-1/2 after:top-1/2 after:h-[15px] after:w-[15px] after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white'
-                            : 'border-[#CFCFCF] bg-white'"
-                        class="relative shrink-0 h-7 w-7 rounded-full border"
-                    ></span>
                 </button>
+
             @endforeach
         </div>
 
+        {{-- Next button --}}
         <button
             type="button"
             @click="scrollTo('study-details')"
-            class="mt-9 h-[46px] w-[260px] rounded-[3px] bg-[#33B6FF] text-[15px] font-medium text-white transition hover:bg-[#159fe4]"
+            class="
+                mt-[30px]
+                h-[42px]
+                w-[240px]
+                rounded-[3px]
+                bg-[#4D7FCF]
+                text-[13px]
+                font-medium
+                text-white
+                transition
+                hover:bg-[#416FB4]
+            "
         >
             Next
         </button>
+
     </div>
 </section>

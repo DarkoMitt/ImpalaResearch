@@ -1,38 +1,75 @@
-<section id="start-study" class="bg-white py-20">
-    <div class="mx-auto max-w-[980px] px-6 text-center">
-        <img src="{{ asset('images/logo.svg') }}" alt="Impala" class="mx-auto h-[56px] w-auto">
+<section
+    id="start-study"
+    class="scroll-mt-[74px] bg-white px-6 py-[76px] md:px-10 lg:px-0"
+>
+    <div class="mx-auto w-full max-w-[980px] text-center">
 
-        <x-stepper :active="1" />
-
-        <h2 class="mt-8 text-[30px] font-bold text-[#2F2F32]">
+        <h2
+            class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]"
+        >
             What do you want to test?
         </h2>
 
-        <p class="mx-auto mt-3 max-w-[560px] text-[14px] leading-[1.5] text-[#6F6F6F]">
-            Choose the area you want insight into. We’ll recommend the best research methods for you.
+        <p
+            class="mx-auto mt-[16px] max-w-[560px] text-[13px] leading-[1.5] text-[#686868]"
+        >
+            Choose the area you want insights on. We’ll recommend the best research methods for you.
         </p>
 
-        <div class="mt-10 grid gap-6 md:grid-cols-3">
-            @php
-                $cards = [
-                    ['Product Research', 'Product', 'Understand which features or options matter most to your customers.'],
-                    ['Pricing Research', 'Pricing', 'Find the right price point people are willing to pay.'],
-                    ['Concept Research', 'Concept', 'Test new ideas or products before launching them.'],
-                    ['Brand Research', 'Brand', 'Measure how people see, recognize, and trust your brand.'],
-                    ['UX Research', 'UX', 'Improve how users interact with your website or app.'],
-                    ['Not sure', 'Not sure', 'Not sure what you need? We’ll help you choose the right approach.'],
-                ];
-            @endphp
+        @php
+            $cards = [
+                [
+                    'Product Research',
+                    'Product',
+                    'Understand which features or options matter most to your customers.'
+                ],
+                [
+                    'Pricing Research',
+                    'Pricing',
+                    'Find the right price point people are willing to pay.'
+                ],
+                [
+                    'Concept Research',
+                    'Concept',
+                    'Test new ideas or products before launching them.'
+                ],
+                [
+                    'Brand Research',
+                    'Brand',
+                    'Measure how people see, recognize, and trust your brand.'
+                ],
+                [
+                    'UX Research',
+                    'UX',
+                    'Improve how users interact with your website or app.'
+                ],
+                [
+                    'Not sure',
+                    'Not sure',
+                    'Not sure what you need? We’ll help you choose the right approach.'
+                ],
+            ];
+        @endphp
 
+        <div
+            class="mx-auto mt-[76px] grid max-w-[790px] gap-[22px] text-left md:grid-cols-3"
+        >
             @foreach ($cards as $card)
                 <button
                     type="button"
                     @click="goal = '{{ $card[0] }}'"
-                    :class="goal === '{{ $card[0] }}' ? 'border-[#33B6FF] ring-2 ring-[#33B6FF]' : 'border-[#CFCFCF]'"
-                    class="min-h-[108px] rounded-[4px] border bg-white p-6 text-left transition hover:border-[#33B6FF] hover:shadow-sm"
+                    :class="goal === '{{ $card[0] }}'
+                        ? 'border-[#4D7FCF] bg-[#F7F9FD] ring-1 ring-[#4D7FCF]'
+                        : 'border-transparent bg-[#F5F5F5]'"
+                    class="min-h-[112px] rounded-[5px] border px-[18px] py-[18px] transition hover:border-[#4D7FCF]"
                 >
-                    <h3 class="text-[18px] font-medium text-[#2F2F32]">{{ $card[1] }}</h3>
-                    <p class="mt-5 text-[12px] leading-[1.35] text-[#555555]">{{ $card[2] }}</p>
+                    <h3 class="text-[14px] font-medium text-[#242424]">
+                        {{ $card[1] }}
+                    </h3>
+
+                    <p class="mt-[22px] text-[11px] leading-[1.35] text-[#5F5F5F]">
+                        {{ $card[2] }}
+                    </p>
                 </button>
             @endforeach
         </div>
@@ -40,7 +77,7 @@
         <button
             type="button"
             @click="scrollTo('method')"
-            class="mt-9 h-[46px] w-[260px] rounded-[3px] bg-[#33B6FF] text-[15px] font-medium text-white transition hover:bg-[#159fe4]"
+            class="mt-[72px] h-[42px] w-[240px] rounded-[3px] bg-[#4D7FCF] text-[13px] font-medium text-white transition hover:bg-[#416FB4]"
         >
             Next
         </button>

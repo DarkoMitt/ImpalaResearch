@@ -1,136 +1,183 @@
 @extends('layouts.app')
 
 @section('content')
-<section
-    class="grid min-h-screen grid-cols-1 lg:grid-cols-2"
-    x-data="{ success: false }"
->
-    <div class="relative flex flex-col bg-[#7DCEF4] px-10 pt-10 lg:px-20 lg:pt-12">
+<section class="min-h-screen w-full bg-white">
+    <div class="grid min-h-screen w-full lg:grid-cols-2">
 
-        <a href="{{ route('home') }}" class="text-white underline">
-            ← Home page
-        </a>
-
-        <div class="flex flex-1 flex-col justify-center">
-            <h1 class="text-[44px] font-bold leading-[1.45] text-white">
-                Impala tests.<br>
-                We develop.<br>
-                You grow.
-            </h1>
-
-            <p class="mt-8 max-w-[420px] text-[18px] leading-[1.5] text-white">
-                A process that combines testing,
-                development, and result validation.
-            </p>
-        </div>
-    </div>
-
-    <div class="flex flex-col items-center justify-center px-8">
-        <img src="{{ asset('images/logo.svg') }}" alt="Impala" class="h-[70px] w-auto">
-
-        <h2 class="mt-16 text-[24px] font-bold">
-            Welcome back!
-        </h2>
-
-        <form
-            class="mt-8 w-full max-w-[420px]"
-            x-data="{
-                email: '',
-                password: '',
-                success: false,
-                error: '',
-
-                login() {
-                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-                    this.error = '';
-                    this.success = false;
-
-                    if (!this.email.trim()) {
-                        this.error = 'Email is required.';
-                        return;
-                    }
-
-                    if (!emailRegex.test(this.email)) {
-                        this.error = 'Please enter a valid email address.';
-                        return;
-                    }
-
-                    if (!this.password.trim()) {
-                        this.error = 'Password is required.';
-                        return;
-                    }
-
-                    if (this.password.length < 8) {
-                        this.error = 'Password must be at least 8 characters.';
-                        return;
-                    }
-
-                    this.success = true;
-                }
-            }"
+        {{-- LEFT SIDE --}}
+        <div
+            class="relative flex min-h-screen flex-col bg-gradient-to-br from-[#487DCF] via-[#315FB2] to-[#142B78] px-10 py-9 text-white md:px-14 lg:px-[72px]"
         >
-            <label class="block">
-                <span class="text-[14px]">Email</span>
+            {{-- Back --}}
+            <a
+                href="{{ route('home') }}"
+                class="inline-flex w-fit items-center gap-1 rounded-full border border-white/70 px-[14px] py-[6px] text-[12px] transition hover:bg-white/10"
+            >
+                ‹ Get back
+            </a>
 
-                <input
-                    type="email"
-                    x-model="email"
-                    placeholder="Enter your email"
-                    class="mt-2 h-[58px] w-full rounded-[3px] border border-[#CFCFCF] px-4 outline-none focus:border-[#33B6FF]"
+            {{-- Left text --}}
+            <div class="my-auto">
+                <h1
+                    class="text-[42px] font-semibold leading-[1.48] tracking-[-1px] md:text-[46px]"
                 >
-            </label>
+                    Impala tests.<br>
+                    We develop.<br>
+                    You grow.
+                </h1>
 
-            <label class="mt-5 block">
-                <span class="text-[14px]">Password</span>
-
-                <input
-                    type="password"
-                    x-model="password"
-                    placeholder="Enter Password"
-                    class="mt-2 h-[58px] w-full rounded-[3px] border border-[#CFCFCF] px-4 outline-none focus:border-[#33B6FF]"
+                <p
+                    class="mt-[26px] max-w-[430px] text-[15px] leading-[1.55] text-white/95"
                 >
-            </label>
-
-            <div class="mt-4 flex items-center justify-between text-[13px]">
-                <label class="flex items-center gap-2">
-                    <input type="checkbox" class="h-4 w-4 accent-[#33B6FF]">
-                    Remember me
-                </label>
-
-                <a href="#" class="text-[#33B6FF]">
-                    Forgot password?
-                </a>
+                    A process that combines testing, development, and result validation.
+                </p>
             </div>
+        </div>
 
-            <button
-                type="button"
-                @click="login()"
-                class="mt-6 h-[55px] w-full rounded-[3px] bg-[#33B6FF] text-white transition hover:bg-[#159fe4]"
+        {{-- RIGHT SIDE --}}
+        <div
+            class="flex min-h-screen flex-col items-center bg-white px-8 py-10 md:px-12"
+        >
+            {{-- Logo --}}
+            <img
+                src="{{ asset('images/logo.svg') }}"
+                alt="Impala"
+                class="h-[40px] w-auto"
             >
-                Log in
-            </button>
 
-            <p
-                x-show="error"
-                x-text="error"
-                class="mt-4 text-center text-[14px] font-medium text-red-600"
-            ></p>
+            {{-- Form wrapper --}}
+            <div class="my-auto w-full max-w-[370px]">
 
-            <p
-                x-show="success"
-                class="mt-4 text-center text-[14px] font-medium text-green-600"
-            >
-                Successful login.
-            </p>
+                <h2
+                    class="text-center text-[20px] font-medium text-[#111111]"
+                >
+                    Welcome back!
+                </h2>
 
-            <p class="mt-6 text-center text-[14px]">
-                Don't have an account?
-                <a href="{{ route('register') }}" class="text-[#33B6FF]">
-                    Sign up
-                </a>
-            </p>
-        </form>
+                <form
+                    class="mt-[54px]"
+                    x-data="{
+                        email: '',
+                        password: '',
+                        remember: false,
+                        error: '',
+
+                        login() {
+                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+                            this.error = '';
+
+                            if (!this.email.trim()) {
+                                this.error = 'Email is required.';
+                                return;
+                            }
+
+                            if (!emailRegex.test(this.email.trim())) {
+                                this.error = 'Please enter a valid email address.';
+                                return;
+                            }
+
+                            if (!this.password.trim()) {
+                                this.error = 'Password is required.';
+                                return;
+                            }
+
+                            if (this.password.length < 8) {
+                                this.error = 'Password must be at least 8 characters.';
+                                return;
+                            }
+
+                            if (
+                                this.email.trim().toLowerCase() === 'admin@gmail.com' &&
+                                this.password === 'Admin123.'
+                            ) {
+                                window.location.href = '{{ route('admin.dashboard') }}';
+                                return;
+                            }
+
+                            window.location.href = '{{ route('pricing') }}';
+                        }
+                    }"
+                    @submit.prevent="login()"
+                >
+                    {{-- Email --}}
+                    <label class="block">
+                        <span class="text-[12px] text-[#222222]">
+                            Email
+                        </span>
+
+                        <input
+                            type="email"
+                            x-model="email"
+                            placeholder="Enter your email"
+                            class="mt-[9px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] px-[13px] text-[12px] outline-none placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
+                        >
+                    </label>
+
+                    {{-- Password --}}
+                    <label class="mt-[24px] block">
+                        <span class="text-[12px] text-[#222222]">
+                            Password
+                        </span>
+
+                        <input
+                            type="password"
+                            x-model="password"
+                            placeholder="Enter Password"
+                            class="mt-[9px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] px-[13px] text-[12px] outline-none placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
+                        >
+                    </label>
+
+                    {{-- Remember / Forgot --}}
+                    <div class="mt-[14px] flex items-center justify-between text-[11px]">
+                        <label class="flex items-center gap-[10px] text-[#555555]">
+                            <input
+                                type="checkbox"
+                                x-model="remember"
+                                class="h-[15px] w-[15px] accent-[#4D7FCF]"
+                            >
+                            Remember me?
+                        </label>
+
+                        <a
+                            href="#"
+                            class="text-[#4D7FCF] hover:underline"
+                        >
+                            Forgot password?
+                        </a>
+                    </div>
+
+                    {{-- Error --}}
+                    <p
+                        x-show="error"
+                        x-cloak
+                        x-text="error"
+                        class="mt-[14px] text-center text-[11px] text-red-600"
+                    ></p>
+
+                    {{-- Login --}}
+                    <button
+                        type="submit"
+                        class="mt-[38px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] bg-white text-[12px] text-[#222222] transition hover:border-[#4D7FCF] hover:text-[#4D7FCF]"
+                    >
+                        Log in
+                    </button>
+
+                    {{-- Sign up --}}
+                    <p class="mt-[16px] text-center text-[11px] text-[#333333]">
+                        Don't have an account?
+
+                        <a
+                            href="{{ route('register') }}"
+                            class="text-[#4D7FCF] hover:underline"
+                        >
+                            Sign up
+                        </a>
+                    </p>
+                </form>
+            </div>
+        </div>
+
     </div>
 </section>
 @endsection
