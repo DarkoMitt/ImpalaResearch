@@ -1,64 +1,44 @@
+
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <title>{{ config('app.name', 'Impala Research') }}</title>
 
-    <title>Impala Research</title>
-
-    {{-- Poppins --}}
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet"
     >
 
-    {{-- Alpine --}}
-    <script
-        defer
-        src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
+    <!-- Tailwind CSS + JavaScript -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+
         [x-cloak] {
             display: none !important;
         }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            min-height: 100%;
-        }
-
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #ffffff;
-            color: #242424;
-        }
     </style>
-
-    @vite([
-        'resources/css/app.css',
-        'resources/js/app.js'
-    ])
 </head>
 
-<body>
+<body class="min-h-screen bg-white antialiased">
 
-    <main class="min-h-screen w-full">
+    {{-- Impala Research pages --}}
+    @hasSection('content')
         @yield('content')
-    </main>
+    @else
+        {{-- Breeze component-based pages --}}
+        {{ $slot ?? '' }}
+    @endif
 
 </body>
-
 </html>

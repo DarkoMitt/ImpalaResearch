@@ -1,19 +1,86 @@
+
 @extends('layouts.app')
 
 @section('content')
+@php
+    $user = auth()->user();
+
+    $fullName = trim($user->name ?? '');
+    $firstName = explode(' ', $fullName)[0] ?: 'User';
+
+    $nameParts = preg_split('/\s+/', $fullName);
+
+    $initials = collect($nameParts)
+        ->filter()
+        ->take(2)
+        ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
+        ->implode('');
+
+    $accountType = $user->account_type ?? 'individual';
+
+    $accountTypeLabel = match ($accountType) {
+        'company' => 'Company',
+        'individual' => 'Individual',
+        default => ucfirst($accountType),
+    };
+
+    $researchQuery = \App\Models\ResearchRequest::query()
+        ->where('user_id', $user->id);
+
+    $totalStudies = (clone $researchQuery)->count();
+
+    $inFieldCount = (clone $researchQuery)
+        ->whereIn('status', ['in_progress', 'in_field'])
+        ->count();
+
+    $studies = (clone $researchQuery)
+        ->latest()
+        ->limit(5)
+        ->get();
+
+    $statusLabels = [
+        'submitted' => 'SUBMITTED',
+        'pending' => 'PENDING',
+        'in_progress' => 'IN FIELD',
+        'in_field' => 'IN FIELD',
+        'review' => 'IN REVIEW',
+        'under_review' => 'IN REVIEW',
+        'completed' => 'COMPLETED',
+        'rejected' => 'REJECTED',
+        'cancelled' => 'CANCELLED',
+    ];
+
+    $statusStyles = [
+        'submitted' => 'bg-[#E7EFFF] text-[#3775D6]',
+        'pending' => 'bg-[#FFF3D8] text-[#C37B0A]',
+        'in_progress' => 'bg-[#E0F4E5] text-[#248743]',
+        'in_field' => 'bg-[#E0F4E5] text-[#248743]',
+        'review' => 'bg-[#FFF3D8] text-[#C37B0A]',
+        'under_review' => 'bg-[#FFF3D8] text-[#C37B0A]',
+        'completed' => 'bg-[#E7EFFF] text-[#3775D6]',
+        'rejected' => 'bg-[#FCE8E8] text-[#C34444]',
+        'cancelled' => 'bg-[#F1F1F1] text-[#777777]',
+    ];
+@endphp
+
 <div class="flex min-h-screen w-full bg-white">
 
     @include('partials.user-sidebar')
 
-    {{-- Main --}}
-    <main
-        class="min-h-screen flex-1 bg-gradient-to-br from-[#DCEAFF] via-[#F7FAFF] to-white px-[30px] py-[46px] lg:px-[42px]"
-    >
+    <main class="min-h-screen min-w-0 flex-1 bg-gradient-to-br from-[#DCEAFF] via-[#F7FAFF] to-white px-[30px] py-[46px] lg:px-[42px]">
+
+        {{-- Success Message --}}
+        @if (session('success'))
+            <div class="mb-[25px] rounded-[8px] border border-[#B8DFC4] bg-[#E8F7EC] px-[18px] py-[14px] text-[12px] text-[#248743]">
+                {{ session('success') }}
+            </div>
+        @endif
+
         {{-- Header --}}
-        <div class="flex items-start justify-between">
+        <div class="flex flex-wrap items-start justify-between gap-4">
             <div>
                 <h1 class="text-[25px] font-medium tracking-[-0.6px] text-[#171717]">
-                    Welcome back, Sara
+                    Welcome back, {{ $firstName }}
                 </h1>
 
                 <p class="mt-[6px] text-[12px] text-[#666666]">
@@ -30,151 +97,197 @@
             </a>
         </div>
 
-        {{-- Stats --}}
-        <div class="mt-[34px] grid gap-[14px] xl:grid-cols-4">
+        {{-- Statistics --}}
+        <div class="mt-[34px] grid gap-[14px] sm:grid-cols-2 xl:grid-cols-4">
 
+            {{-- Active Plan --}}
             <div class="rounded-[15px] border border-[#BFBFBF] bg-white px-[20px] py-[21px]">
                 <p class="text-[10px] uppercase text-[#666666]">
                     Active Plan
                 </p>
 
-                <h2 class="mt-[20px] text-[23px] font-medium">
-                    Semi-Yearly
+                <h2 class="mt-[20px] text-[23px] font-medium text-[#171717]">
+                    No Active Plan
                 </h2>
 
-                <p class="mt-[8px] text-[10px] text-[#777777]">
-                    Renews Jan 14, 2027
-                </p>
+                <a
+                    href="{{ route('pricing') }}"
+                    class="mt-[8px] inline-block text-[10px] text-[#4D7FCF] hover:underline"
+                >
+                    Explore subscription plans
+                </a>
             </div>
 
+            {{-- Remaining Respondents --}}
             <div class="rounded-[15px] border border-[#BFBFBF] bg-white px-[20px] py-[21px]">
                 <p class="text-[10px] uppercase text-[#666666]">
                     Remaining Respondents
                 </p>
 
                 <div class="mt-[20px] flex items-end gap-1">
-                    <span class="text-[23px] font-medium">340</span>
-                    <span class="pb-[2px] text-[14px] text-[#888888]">/ 500</span>
+                    <span class="text-[23px] font-medium text-[#171717]">
+                        —
+                    </span>
                 </div>
 
+                <p class="mt-[8px] text-[10px] text-[#777777]">
+                    Available with an active plan
+                </p>
+
                 <div class="mt-[18px] h-[6px] overflow-hidden rounded-full bg-[#E4EAF2]">
-                    <div class="h-full w-[68%] rounded-full bg-[#4D7FCF]"></div>
+                    <div class="h-full w-0 rounded-full bg-[#4D7FCF]"></div>
                 </div>
             </div>
 
+            {{-- Subscription Expiration --}}
             <div class="rounded-[15px] border border-[#BFBFBF] bg-white px-[20px] py-[21px]">
                 <p class="text-[10px] uppercase text-[#666666]">
                     Subscription Expiration
                 </p>
 
-                <h2 class="mt-[20px] text-[23px] font-medium">
-                    196 days
+                <h2 class="mt-[20px] text-[23px] font-medium text-[#171717]">
+                    —
                 </h2>
 
                 <p class="mt-[8px] text-[10px] text-[#777777]">
-                    Auto-renew is on
+                    No subscription information yet
                 </p>
             </div>
 
+            {{-- Studies in Field --}}
             <div class="rounded-[15px] border border-[#BFBFBF] bg-white px-[20px] py-[21px]">
                 <p class="text-[10px] uppercase text-[#666666]">
                     Studies in Field
                 </p>
 
-                <h2 class="mt-[20px] text-[23px] font-medium">
-                    3
+                <h2 class="mt-[20px] text-[23px] font-medium text-[#171717]">
+                    {{ $inFieldCount }}
                 </h2>
 
                 <p class="mt-[8px] text-[10px] text-[#777777]">
-                    2 launched this week
+                    {{ $totalStudies }} total research {{ $totalStudies === 1 ? 'request' : 'requests' }}
                 </p>
             </div>
         </div>
 
-        {{-- Lower section --}}
+        {{-- Lower Section --}}
         <div class="mt-[16px] grid gap-[16px] xl:grid-cols-[1fr_260px]">
 
             {{-- Recent Studies --}}
             <section
                 id="recent-studies"
-                class="overflow-hidden rounded-[12px] border border-[#BFC3C9] bg-white"
+                class="min-w-0 overflow-hidden rounded-[12px] border border-[#BFC3C9] bg-white"
             >
-                <div class="flex h-[50px] items-center justify-between border-b border-[#E3E3E3] px-[22px]">
+                <div class="flex min-h-[50px] items-center justify-between gap-3 border-b border-[#E3E3E3] px-[22px]">
                     <h2 class="text-[13px] font-medium">
                         Recent Studies
                     </h2>
 
-                    <button class="text-[11px] text-[#4D7FCF]">
+                    <a
+                        href="{{ route('my-studies.index') }}"
+                        class="text-[11px] text-[#4D7FCF] hover:underline"
+                    >
                         View all
-                    </button>
+                    </a>
                 </div>
 
-                @php
-                    $studies = [
-                        [
-                            'Packaging A/B — Facial Coding',
-                            'CX-1042',
-                            '120',
-                            'IN FIELD',
-                            'green'
-                        ],
-                        [
-                            'Homepage Hero — Eye Tracking',
-                            'CX-1039',
-                            '80',
-                            'AWAITING REVIEW',
-                            'yellow'
-                        ],
-                        [
-                            'Brand Recall — Implicit Testing',
-                            'CX-1031',
-                            '200',
-                            'REPORT READY',
-                            'blue'
-                        ],
-                        [
-                            'Ad Creative Lift — Pre/Post',
-                            'CX-1024',
-                            '150',
-                            'REPORT READY',
-                            'blue'
-                        ],
-                    ];
-                @endphp
+                @forelse ($studies as $study)
+                    @php
+                        $status = strtolower($study->status ?? 'submitted');
 
-                @foreach ($studies as $study)
-                    <div class="flex min-h-[72px] items-center justify-between border-b border-[#E9E9E9] px-[22px] last:border-b-0">
-                        <div>
-                            <h3 class="text-[13px] font-medium text-[#192231]">
-                                {{ $study[0] }}
+                        $statusLabel = $statusLabels[$status]
+                            ?? strtoupper(str_replace('_', ' ', $status));
+
+                        $statusClass = $statusStyles[$status]
+                            ?? 'bg-[#F1F1F1] text-[#777777]';
+
+                        $studyCode = 'REQ-' . str_pad(
+                            (string) $study->id,
+                            4,
+                            '0',
+                            STR_PAD_LEFT
+                        );
+                    @endphp
+
+                    <a
+                        href="{{ route('my-studies.show', $study) }}"
+                        class="flex min-h-[85px] flex-wrap items-center justify-between gap-3 border-b border-[#E9E9E9] px-[22px] py-[15px] transition hover:bg-[#F7F9FD] last:border-b-0"
+                    >
+                        <div class="min-w-0 flex-1">
+                            <h3 class="break-words text-[13px] font-medium text-[#192231]">
+                                {{ $study->goal }}
                             </h3>
 
-                            <p class="mt-[6px] font-mono text-[11px] tracking-[0.06em] text-[#555555]">
-                                ID {{ $study[1] }}
-                                <span class="mx-[8px]">•</span>
-                                {{ $study[2] }} RESPONDENTS
+                            <p class="mt-[6px] text-[11px] tracking-[0.02em] text-[#555555]">
+                                <span class="font-mono">
+                                    ID {{ $studyCode }}
+                                </span>
+
+                                <span class="mx-[6px]">•</span>
+
+                                {{ $study->sample_size }} RESPONDENTS
+                            </p>
+
+                            <p class="mt-[5px] text-[10px] text-[#888888]">
+                                {{ $study->country }}
+
+                                <span class="mx-[5px]">•</span>
+
+                                {{ $study->created_at?->format('M d, Y') }}
                             </p>
                         </div>
 
-                        @if ($study[4] === 'green')
-                            <span class="rounded-full bg-[#E0F4E5] px-[14px] py-[5px] text-[9px] font-medium text-[#248743]">
-                                ● &nbsp; {{ $study[3] }}
-                            </span>
-                        @elseif ($study[4] === 'yellow')
-                            <span class="rounded-full bg-[#FFF3D8] px-[14px] py-[5px] text-[9px] font-medium text-[#C37B0A]">
-                                ● &nbsp; {{ $study[3] }}
-                            </span>
-                        @else
-                            <span class="rounded-full bg-[#E7EFFF] px-[14px] py-[5px] text-[9px] font-medium text-[#3775D6]">
-                                ● &nbsp; {{ $study[3] }}
-                            </span>
-                        @endif
+                        <span class="shrink-0 rounded-full px-[14px] py-[6px] text-[9px] font-medium {{ $statusClass }}">
+                            ● &nbsp; {{ $statusLabel }}
+                        </span>
+                    </a>
+
+                @empty
+                    {{-- Empty State --}}
+                    <div class="flex min-h-[290px] flex-col items-center justify-center px-[24px] py-[40px] text-center">
+
+                        <div class="flex h-[56px] w-[56px] items-center justify-center rounded-full bg-[#EDF3FF]">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="25"
+                                height="25"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="#4D7FCF"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                <path d="M8 16V12"/>
+                                <path d="M12 16V8"/>
+                                <path d="M16 16V10"/>
+                            </svg>
+                        </div>
+
+                        <h3 class="mt-[18px] text-[14px] font-medium text-[#192231]">
+                            Your research journey starts here
+                        </h3>
+
+                        <p class="mt-[9px] max-w-[330px] text-[11px] leading-[1.7] text-[#777777]">
+                            You haven't created any research studies yet.
+                            Start your first study to explore customer behavior
+                            and gain valuable insights.
+                        </p>
+
+                        <a
+                            href="{{ route('home') }}#start-study"
+                            class="mt-[20px] inline-flex h-[37px] items-center justify-center rounded-[6px] bg-[#4D7FCF] px-[17px] text-[11px] font-medium text-white transition hover:bg-[#416FB4]"
+                        >
+                            + Create Your First Study
+                        </a>
                     </div>
-                @endforeach
+                @endforelse
             </section>
 
             {{-- Quick Profile --}}
             <aside class="rounded-[12px] border border-[#BFC3C9] bg-white">
+
                 <div class="flex h-[50px] items-center border-b border-[#E3E3E3] px-[20px]">
                     <h2 class="text-[13px] font-medium">
                         Quick Profile
@@ -182,50 +295,59 @@
                 </div>
 
                 <div class="p-[20px]">
+
                     <div class="flex items-center gap-[14px]">
-                        <div
-                            class="flex h-[44px] w-[44px] items-center justify-center rounded-full bg-[#262B34] text-[15px] text-white"
-                        >
-                            MK
+                        <div class="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full bg-[#262B34] text-[15px] text-white">
+                            {{ $initials ?: 'U' }}
                         </div>
 
-                        <div>
-                            <p class="text-[13px] font-semibold">
-                                Mila Krstić
+                        <div class="min-w-0">
+                            <p class="truncate text-[13px] font-semibold text-[#171717]">
+                                {{ $user->name }}
                             </p>
 
-                            <p class="text-[10px] text-[#666666]">
-                                mila@brightlensmedia.com
+                            <p class="break-all text-[10px] text-[#666666]">
+                                {{ $user->email }}
                             </p>
                         </div>
                     </div>
 
                     <div class="mt-[28px] space-y-[24px] text-[12px]">
-                        <div class="flex justify-between">
-                            <span class="text-[#555555]">Company</span>
-                            <strong>Bright Lens Media</strong>
+
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-[#555555]">
+                                Company
+                            </span>
+
+                            <strong class="text-right font-medium text-[#171717]">
+                                {{ $user->company_name ?: ($accountType === 'company' ? 'Not specified' : '—') }}
+                            </strong>
                         </div>
 
-                        <div class="flex justify-between">
-                            <span class="text-[#555555]">Account type</span>
-                            <strong>Agency</strong>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-[#555555]">
+                                Account type
+                            </span>
+
+                            <strong class="font-medium text-[#171717]">
+                                {{ $accountTypeLabel }}
+                            </strong>
                         </div>
 
-                        <div>
-                            <div class="flex justify-between">
-                                <span class="text-[#555555]">Seats used</span>
-                                <strong>4 / 6</strong>
-                            </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-[#555555]">
+                                Member since
+                            </span>
 
-                            <div class="ml-auto mt-[10px] h-[5px] w-[80px] rounded-full bg-[#E6ECF5]">
-                                <div class="h-full w-[67%] rounded-full bg-[#5646E8]"></div>
-                            </div>
+                            <strong class="font-medium text-[#171717]">
+                                {{ $user->created_at?->format('M Y') ?? '—' }}
+                            </strong>
                         </div>
                     </div>
 
                     <a
                         href="{{ route('profile-settings') }}"
-                        class="mt-[30px] flex h-[38px] w-full items-center justify-center rounded-[7px] border border-[#C5C5C5] text-[11px] transition hover:border-[#4D7FCF]"
+                        class="mt-[30px] flex h-[38px] w-full items-center justify-center rounded-[7px] border border-[#C5C5C5] text-[11px] transition hover:border-[#4D7FCF] hover:text-[#4D7FCF]"
                     >
                         Edit profile
                     </a>

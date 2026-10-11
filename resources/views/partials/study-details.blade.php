@@ -1,27 +1,20 @@
+
 <section
     id="study-details"
     class="scroll-mt-[74px] bg-white px-6 py-[110px] md:px-10 lg:px-0"
 >
     <div class="mx-auto w-full max-w-[980px] text-center">
 
-        {{-- Heading --}}
-        <h2
-            class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]"
-        >
+        <h2 class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]">
             Tell us about your study
         </h2>
 
-        {{-- Description --}}
-        <p
-            class="mx-auto mt-[16px] max-w-[420px] text-[13px] leading-[1.5] text-[#686868]"
-        >
+        <p class="mx-auto mt-[16px] max-w-[420px] text-[13px] leading-[1.5] text-[#686868]">
             These details help us tailor the study for you.
         </p>
 
-        {{-- Form --}}
-        <form
-            class="mx-auto mt-[76px] max-w-[790px] text-left"
-        >
+        <div class="mx-auto mt-[76px] max-w-[790px] text-left">
+
             <div class="grid gap-x-[48px] gap-y-[24px] md:grid-cols-2">
 
                 {{-- Country --}}
@@ -42,7 +35,7 @@
                     </select>
                 </label>
 
-                {{-- Target Audience --}}
+                {{-- Audience --}}
                 <label class="block">
                     <span class="text-[13px] font-normal text-[#242424]">
                         Target Audience
@@ -51,6 +44,7 @@
                     <input
                         type="text"
                         x-model="audience"
+                        maxlength="1000"
                         placeholder="e.g US Adults 18–65"
                         class="mt-[10px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] px-[14px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                     >
@@ -63,6 +57,7 @@
                     </span>
 
                     <div class="mt-[10px] flex h-[44px] items-center gap-[14px]">
+
                         <input
                             type="range"
                             min="1"
@@ -77,13 +72,10 @@
                             inputmode="numeric"
                             maxlength="4"
                             x-model="sampleSize"
-
                             @input="
                                 sampleSize = String(sampleSize).replace(/[^0-9]/g, '');
 
-                                if (sampleSize === '') {
-                                    sampleSize = '1';
-                                }
+                                if (sampleSize === '') sampleSize = '1';
 
                                 let value = parseInt(sampleSize, 10);
 
@@ -92,7 +84,6 @@
 
                                 sampleSize = String(value);
                             "
-
                             @blur="
                                 let value = parseInt(sampleSize || 1, 10);
 
@@ -101,13 +92,11 @@
 
                                 sampleSize = String(value);
                             "
-
                             @keydown="
                                 if (['-', '+', '.', ',', 'e', 'E'].includes($event.key)) {
                                     $event.preventDefault();
                                 }
                             "
-
                             class="h-[44px] w-[72px] rounded-[3px] border border-[#BFBFBF] px-2 text-center text-[12px] text-[#242424] outline-none transition focus:border-[#4D7FCF]"
                         >
                     </div>
@@ -129,6 +118,7 @@
                         <option value="1-2 months">1-2 months</option>
                     </select>
                 </label>
+
             </div>
 
             {{-- Notes --}}
@@ -139,6 +129,7 @@
 
                 <textarea
                     x-model="notes"
+                    maxlength="5000"
                     placeholder="Add any specific requirements or context about your study..."
                     class="mt-[10px] h-[86px] w-full resize-none rounded-[3px] border border-[#BFBFBF] px-[14px] py-[12px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                 ></textarea>
@@ -148,12 +139,25 @@
             <div class="mt-[60px] text-center">
                 <button
                     type="button"
-                    @click="scrollTo('submit-request')"
+                    @click="
+                        if (!country) {
+                            alert('Please select your target country.');
+                            return;
+                        }
+
+                        if (!audience.trim()) {
+                            alert('Please enter your target audience.');
+                            return;
+                        }
+
+                        scrollTo('submit-request');
+                    "
                     class="h-[42px] w-[240px] rounded-[3px] bg-[#4D7FCF] text-[13px] font-medium text-white transition hover:bg-[#416FB4]"
                 >
                     Next
                 </button>
             </div>
-        </form>
+
+        </div>
     </div>
 </section>

@@ -1,6 +1,6 @@
-<aside
-    class="flex min-h-screen w-[235px] shrink-0 flex-col bg-white px-[46px] py-[42px]"
->
+
+<aside class="flex min-h-screen w-[235px] shrink-0 flex-col bg-white px-[46px] py-[42px]">
+
     {{-- Logo --}}
     <a href="{{ route('dashboard') }}">
         <img
@@ -17,16 +17,23 @@
         </p>
 
         <nav class="mt-[16px] space-y-[4px] text-[11px]">
+
             <a
                 href="{{ route('dashboard') }}"
-                class="block rounded-[5px] bg-[#E9EDFF] px-[12px] py-[8px] text-[#4D7FCF]"
+                class="block rounded-[5px] px-[12px] py-[8px] transition
+                {{ request()->routeIs('dashboard')
+                    ? 'bg-[#E9EDFF] text-[#4D7FCF]'
+                    : 'text-[#555555] hover:bg-[#F5F5F5]' }}"
             >
                 Dashboard
             </a>
 
             <a
-                href="#recent-studies"
-                class="block rounded-[5px] px-[12px] py-[8px] text-[#555555] transition hover:bg-[#F5F5F5]"
+                href="{{ route('my-studies.index') }}"
+                class="block rounded-[5px] px-[12px] py-[8px] transition
+                {{ request()->routeIs('my-studies.*')
+                    ? 'bg-[#E9EDFF] text-[#4D7FCF]'
+                    : 'text-[#555555] hover:bg-[#F5F5F5]' }}"
             >
                 My Research Requests
             </a>
@@ -54,9 +61,13 @@
         </p>
 
         <nav class="mt-[16px] space-y-[4px] text-[11px]">
+
             <a
                 href="{{ route('profile-settings') }}"
-                class="block rounded-[5px] px-[12px] py-[8px] text-[#555555] transition hover:bg-[#F5F5F5]"
+                class="block rounded-[5px] px-[12px] py-[8px] transition
+                {{ request()->routeIs('profile-settings')
+                    ? 'bg-[#E9EDFF] text-[#4D7FCF]'
+                    : 'text-[#555555] hover:bg-[#F5F5F5]' }}"
             >
                 Profile Settings
             </a>
@@ -70,13 +81,17 @@
         </nav>
     </div>
 
-    {{-- Demo logout --}}
+    {{-- Logout --}}
     <div class="mt-auto pt-10">
-        <a
-            href="{{ route('login') }}"
-            class="block px-[12px] py-[8px] text-[11px] text-[#777777] hover:text-red-500"
-        >
-            Log out
-        </a>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+
+            <button
+                type="submit"
+                class="block w-full cursor-pointer rounded-[5px] px-[12px] py-[8px] text-left text-[11px] text-[#777777] transition hover:bg-red-50 hover:text-red-500"
+            >
+                Log out
+            </button>
+        </form>
     </div>
 </aside>

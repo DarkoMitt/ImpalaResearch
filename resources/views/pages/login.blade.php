@@ -1,3 +1,4 @@
+
 @extends('layouts.app')
 
 @section('content')
@@ -54,52 +55,19 @@
                     Welcome back!
                 </h2>
 
+                @if (session('status'))
+                    <p class="mt-5 text-center text-[12px] text-green-600">
+                        {{ session('status') }}
+                    </p>
+                @endif
+
                 <form
+                    method="POST"
+                    action="{{ route('login') }}"
                     class="mt-[54px]"
-                    x-data="{
-                        email: '',
-                        password: '',
-                        remember: false,
-                        error: '',
-
-                        login() {
-                            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-                            this.error = '';
-
-                            if (!this.email.trim()) {
-                                this.error = 'Email is required.';
-                                return;
-                            }
-
-                            if (!emailRegex.test(this.email.trim())) {
-                                this.error = 'Please enter a valid email address.';
-                                return;
-                            }
-
-                            if (!this.password.trim()) {
-                                this.error = 'Password is required.';
-                                return;
-                            }
-
-                            if (this.password.length < 8) {
-                                this.error = 'Password must be at least 8 characters.';
-                                return;
-                            }
-
-                            if (
-                                this.email.trim().toLowerCase() === 'admin@gmail.com' &&
-                                this.password === 'Admin123.'
-                            ) {
-                                window.location.href = '{{ route('admin.dashboard') }}';
-                                return;
-                            }
-
-                            window.location.href = '{{ route('pricing') }}';
-                        }
-                    }"
-                    @submit.prevent="login()"
                 >
+                    @csrf
+
                     {{-- Email --}}
                     <label class="block">
                         <span class="text-[12px] text-[#222222]">
@@ -108,11 +76,21 @@
 
                         <input
                             type="email"
-                            x-model="email"
+                            name="email"
+                            value="{{ old('email') }}"
+                            required
+                            autofocus
+                            autocomplete="username"
                             placeholder="Enter your email"
                             class="mt-[9px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] px-[13px] text-[12px] outline-none placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                         >
                     </label>
+
+                    @error('email')
+                        <p class="mt-[7px] text-[11px] text-red-600">
+                            {{ $message }}
+                        </p>
+                    @enderror
 
                     {{-- Password --}}
                     <label class="mt-[24px] block">
@@ -122,38 +100,43 @@
 
                         <input
                             type="password"
-                            x-model="password"
+                            name="password"
+                            required
+                            autocomplete="current-password"
                             placeholder="Enter Password"
                             class="mt-[9px] h-[44px] w-full rounded-[3px] border border-[#BFBFBF] px-[13px] text-[12px] outline-none placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                         >
                     </label>
 
+                    @error('password')
+                        <p class="mt-[7px] text-[11px] text-red-600">
+                            {{ $message }}
+                        </p>
+                    @enderror
+
                     {{-- Remember / Forgot --}}
                     <div class="mt-[14px] flex items-center justify-between text-[11px]">
+
                         <label class="flex items-center gap-[10px] text-[#555555]">
                             <input
                                 type="checkbox"
-                                x-model="remember"
+                                name="remember"
+                                value="1"
+                                {{ old('remember') ? 'checked' : '' }}
                                 class="h-[15px] w-[15px] accent-[#4D7FCF]"
                             >
                             Remember me?
                         </label>
 
-                        <a
-                            href="#"
-                            class="text-[#4D7FCF] hover:underline"
-                        >
-                            Forgot password?
-                        </a>
+                        @if (Route::has('password.request'))
+                            <a
+                                href="{{ route('password.request') }}"
+                                class="text-[#4D7FCF] hover:underline"
+                            >
+                                Forgot password?
+                            </a>
+                        @endif
                     </div>
-
-                    {{-- Error --}}
-                    <p
-                        x-show="error"
-                        x-cloak
-                        x-text="error"
-                        class="mt-[14px] text-center text-[11px] text-red-600"
-                    ></p>
 
                     {{-- Login --}}
                     <button
@@ -177,7 +160,6 @@
                 </form>
             </div>
         </div>
-
     </div>
 </section>
 @endsection
