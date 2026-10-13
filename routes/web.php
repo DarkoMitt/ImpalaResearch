@@ -2,12 +2,18 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminDashboardController;
-use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminResearchRequestController;
+use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ResearchRequestController;
+use App\Http\Controllers\StripeCheckoutController;
+use App\Http\Controllers\StripeWebhookController;
+use App\Http\Controllers\SubscriptionCancellationController;
 use App\Http\Controllers\UserResearchRequestController;
 use App\Http\Middleware\SubmitPendingResearchRequest;
+use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,16 +24,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home')->name('home');
 
-Route::view('/contact', 'pages.contact')
-    ->name('contact');
+Route::view('/contact', 'pages.contact')->name('contact');
 
-Route::view('/thank-you', 'pages.thank-you')
-    ->name('thank-you');
+Route::view('/thank-you', 'pages.thank-you')->name('thank-you');
 
-Route::view('/pricing', 'pages.pricing')
+Route::get('/pricing', [PricingController::class, 'index'])
     ->name('pricing');
 
-Route::view('/payment', 'pages.payment')
+Route::get('/payment', [PaymentController::class, 'index'])
     ->name('payment');
 
 /*
@@ -40,6 +44,19 @@ Route::post(
     '/research-requests',
     [ResearchRequestController::class, 'store']
 )->name('research-requests.store');
+
+/*
+|--------------------------------------------------------------------------
+| Stripe Webhook
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    '/stripe/webhook',
+    [StripeWebhookController::class, 'handle']
+)
+    ->withoutMiddleware([ValidateCsrfToken::class])
+    ->name('stripe.webhook');
 
 /*
 |--------------------------------------------------------------------------
@@ -67,6 +84,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
         '/my-studies/{researchRequest}',
         [UserResearchRequestController::class, 'show']
     )->name('my-studies.show');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Stripe Checkout
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/checkout/stripe',
+        [StripeCheckoutController::class, 'store']
+    )->name('checkout.stripe');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Subscription Cancellation / Refund
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/subscription/cancellation-request',
+        [SubscriptionCancellationController::class, 'store']
+    )->name('subscriptions.cancellation-request');
+
+    Route::post(
+        '/subscription/resume',
+        [SubscriptionCancellationController::class, 'resume']
+    )->name('subscriptions.resume');
 });
 
 /*
