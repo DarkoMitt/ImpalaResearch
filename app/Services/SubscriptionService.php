@@ -25,8 +25,11 @@ class SubscriptionService
         if (
             $invoiceId === '' ||
             $stripeSubscriptionId === '' ||
+            $userId <= 0 ||
+            $planId <= 0 ||
+            $amountPaidCents <= 0 ||
             $periodEnd->lessThanOrEqualTo($periodStart) ||
-            $amountPaidCents < 0
+            $periodStart->greaterThan(CarbonImmutable::now()->addMinutes(10))
         ) {
             throw new RuntimeException(
                 'Invalid paid subscription invoice or period.'
@@ -50,6 +53,15 @@ class SubscriptionService
 
             $plan = SubscriptionPlan::query()
                 ->findOrFail($planId);
+
+            if (
+                (int) $plan->price_cents <= 0 ||
+                !in_array((int) $plan->duration_months, [1, 6, 12], true)
+            ) {
+                throw new RuntimeException(
+                    'Subscription plan has an invalid billing configuration.'
+                );
+            }
 
             $existingInvoice = StripePaidInvoice::query()
                 ->where('stripe_invoice_id', $invoiceId)
@@ -97,6 +109,21 @@ class SubscriptionService
             ) {
                 throw new RuntimeException(
                     'Stripe subscription belongs to another user.'
+                );
+            }
+
+            if ($subscription && $subscription->is_demo) {
+                throw new RuntimeException(
+                    'A demo subscription cannot be converted into a paid Stripe subscription.'
+                );
+            }
+
+            if (
+                $subscription &&
+                $subscription->status === 'cancelled'
+            ) {
+                throw new RuntimeException(
+                    'A cancelled Stripe subscription cannot be reactivated by an invoice.'
                 );
             }
 
@@ -151,6 +178,7 @@ class SubscriptionService
                 'user_id' => $user->id,
                 'subscription_plan_id' => $plan->id,
                 'status' => 'active',
+                'is_demo' => false,
                 'stripe_customer_id' => $stripeCustomerId
                     ?? $subscription?->stripe_customer_id,
                 'stripe_subscription_id' => $stripeSubscriptionId,
@@ -203,6 +231,20 @@ class SubscriptionService
                 !$locked->starts_at ||
                 !$locked->ends_at ||
                 $locked->ends_at->lessThanOrEqualTo(now())
+            ) {
+                return 0;
+            }
+
+            if (
+                !$locked->is_demo &&
+                !$locked->stripe_subscription_id
+            ) {
+                return 0;
+            }
+
+            if (
+                $locked->is_demo &&
+                !app()->environment('local', 'testing')
             ) {
                 return 0;
             }

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\StripeWebhookEvent;
 use App\Models\Subscription;
+use App\Services\StripeSubscriptionGateway;
+use App\Services\StripeSubscriptionIdentity;
 use App\Services\SubscriptionService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +14,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Stripe\Exception\SignatureVerificationException;
-use Stripe\StripeClient;
 use Stripe\Webhook;
 use Throwable;
 use UnexpectedValueException;
@@ -21,7 +22,9 @@ class StripeWebhookController extends Controller
 {
     public function handle(
         Request $request,
-        SubscriptionService $subscriptions
+        SubscriptionService $subscriptions,
+        StripeSubscriptionGateway $gateway,
+        StripeSubscriptionIdentity $identity
     ): JsonResponse {
         $webhookSecret = config('services.stripe.webhook_secret');
 
@@ -46,6 +49,8 @@ class StripeWebhookController extends Controller
             ], 400);
         }
 
+        $type = (string) $event->type;
+
         $supported = [
             'invoice.paid',
             'invoice.payment_failed',
@@ -54,15 +59,13 @@ class StripeWebhookController extends Controller
             'customer.subscription.deleted',
         ];
 
-        $type = $event->type;
-        $objectId = $event->data->object->id ?? null;
-
         try {
             $record = StripeWebhookEvent::query()->firstOrCreate(
                 ['stripe_event_id' => $event->id],
                 [
                     'event_type' => $type,
-                    'stripe_object_id' => $objectId,
+                    'stripe_object_id' =>
+                        $event->data->object->id ?? null,
                     'status' => in_array($type, $supported, true)
                         ? 'pending_processing'
                         : 'ignored',
@@ -73,78 +76,97 @@ class StripeWebhookController extends Controller
                 ]
             );
 
-            if ($record->status === 'processed' ||
-                $record->status === 'ignored') {
+            if (in_array(
+                $record->status,
+                ['processed', 'ignored'],
+                true
+            )) {
                 return response()->json(['received' => true]);
             }
 
             DB::transaction(function () use (
                 $record,
-                $type,
                 $event,
-                $subscriptions
+                $type,
+                $subscriptions,
+                $gateway,
+                $identity
             ) {
-                $locked = StripeWebhookEvent::query()
+                $lockedEvent = StripeWebhookEvent::query()
                     ->whereKey($record->id)
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if (in_array($locked->status, ['processed', 'ignored'])) {
+                if (in_array(
+                    $lockedEvent->status,
+                    ['processed', 'ignored'],
+                    true
+                )) {
                     return;
+                }
+
+                $objectId = $event->data->object->id ?? null;
+
+                if (
+                    in_array($type, [
+                        'invoice.paid',
+                        'customer.subscription.updated',
+                        'customer.subscription.deleted',
+                    ], true) &&
+                    (!is_string($objectId) || $objectId === '')
+                ) {
+                    throw new RuntimeException(
+                        'Stripe event object ID is missing.'
+                    );
                 }
 
                 if ($type === 'invoice.paid') {
                     $this->processPaidInvoice(
-                        $event->data->object->id,
-                        $subscriptions
+                        $objectId,
+                        $subscriptions,
+                        $gateway
                     );
                 }
 
-                if ($type === 'customer.subscription.deleted') {
-                    $stripeSubscriptionId = $event->data->object->id;
-
-                    $subscription = Subscription::query()
-                        ->where(
-                            'stripe_subscription_id',
-                            $stripeSubscriptionId
-                        )
-                        ->lockForUpdate()
-                        ->first();
-
-                    if ($subscription) {
-                        $subscription->update([
-                            'status' => 'cancelled',
-                            'cancelled_at' => now(),
-                            'ends_at' => $subscription->ends_at
-                                ? min($subscription->ends_at, now())
-                                : now(),
-                        ]);
-                    }
+                if (in_array($type, [
+                    'customer.subscription.updated',
+                    'customer.subscription.deleted',
+                ], true)) {
+                    $this->synchronizeSubscription(
+                        $objectId,
+                        $gateway,
+                        $identity
+                    );
                 }
 
-                // Other events are recorded for now.
-                // Renewal activation is controlled by invoice.paid.
-                $locked->update([
+                // Checkout completion and payment failure
+                // never grant a paid period or respondents.
+                $lockedEvent->update([
                     'status' => 'processed',
                     'processed_at' => now(),
                     'error_message' => null,
                 ]);
-            }, 3);
+            }, 1);
 
             return response()->json(['received' => true]);
-
         } catch (Throwable $exception) {
             report($exception);
 
             if (isset($record)) {
-                $record->update([
-                    'status' => 'pending_processing',
-                    'error_message' => substr(
-                        $exception->getMessage(),
-                        0,
-                        5000
-                    ),
-                ]);
+                try {
+                    StripeWebhookEvent::query()
+                        ->whereKey($record->id)
+                        ->where('status', 'pending_processing')
+                        ->update([
+                            'error_message' => substr(
+                                $exception->getMessage(),
+                                0,
+                                5000
+                            ),
+                        ]);
+                } catch (Throwable $loggingException) {
+                    report($loggingException);
+                }
             }
 
             Log::error('Stripe webhook processing failed.', [
@@ -158,23 +180,94 @@ class StripeWebhookController extends Controller
         }
     }
 
-    private function processPaidInvoice(
-        string $invoiceId,
-        SubscriptionService $subscriptions
+    private function synchronizeSubscription(
+        string $stripeSubscriptionId,
+        StripeSubscriptionGateway $gateway,
+        StripeSubscriptionIdentity $identity
     ): void {
-        $secret = config('services.stripe.secret');
+        $subscription = Subscription::query()
+            ->where(
+                'stripe_subscription_id',
+                $stripeSubscriptionId
+            )
+            ->lockForUpdate()
+            ->first();
 
-        if (!is_string($secret) || !str_starts_with($secret, 'sk_test_')) {
+        if (!$subscription) {
+            // Activation is exclusively handled by invoice.paid.
+            return;
+        }
+
+        if ($subscription->is_demo) {
             throw new RuntimeException(
-                'Stripe test secret key is not configured.'
+                'Demo subscription has a Stripe ID.'
             );
         }
 
-        $stripe = new StripeClient($secret);
+        $remote = $gateway->retrieve($stripeSubscriptionId);
 
-        $invoice = $stripe->invoices->retrieve($invoiceId, [
-            'expand' => ['lines'],
+        $identity->assertMatches($subscription, $remote);
+
+        $status = (string) ($remote->status ?? '');
+
+        if ($status === 'canceled') {
+            $this->markCancelled($subscription);
+            return;
+        }
+
+        // Never reactivate a locally cancelled subscription
+        // from an updated/deleted webhook.
+        if ($subscription->status === 'cancelled') {
+            return;
+        }
+
+        if ($status !== 'active') {
+            // Do not grant or extend a billing period.
+            // Other payment states need separate billing policy.
+            return;
+        }
+
+        if (
+            $subscription->status !== 'active' ||
+            !$subscription->ends_at ||
+            !$subscription->ends_at->isFuture()
+        ) {
+            return;
+        }
+
+        $subscription->update([
+            'cancel_at' =>
+                (bool) ($remote->cancel_at_period_end ?? false)
+                    ? $subscription->ends_at
+                    : null,
         ]);
+    }
+
+    private function markCancelled(
+        Subscription $subscription
+    ): void {
+        if ($subscription->status === 'cancelled') {
+            return;
+        }
+
+        $now = now();
+
+        $subscription->update([
+            'status' => 'cancelled',
+            'cancelled_at' => $now,
+            'cancel_at' => null,
+            'ends_at' => $subscription->ends_at
+                ? min($subscription->ends_at, $now)
+                : $now,
+        ]);
+    }
+
+    private function processPaidInvoice(
+        string $invoiceId,
+        SubscriptionService $subscriptions,
+        StripeSubscriptionGateway $gateway
+    ): void {
+        $invoice = $gateway->retrieveInvoice($invoiceId);
 
         if (
             $invoice->status !== 'paid' ||
@@ -189,24 +282,19 @@ class StripeWebhookController extends Controller
             $invoice->parent->subscription_details->subscription
             ?? null;
 
-        if (!is_string($stripeSubscriptionId) ||
-            $stripeSubscriptionId === '') {
+        if (
+            !is_string($stripeSubscriptionId) ||
+            $stripeSubscriptionId === ''
+        ) {
             throw new RuntimeException(
                 'Paid invoice has no Stripe subscription reference.'
             );
         }
 
-        $stripeSubscription = $stripe->subscriptions->retrieve(
-            $stripeSubscriptionId
-        );
+        $remote = $gateway->retrieve($stripeSubscriptionId);
 
-        $userId = (int) (
-            $stripeSubscription->metadata->user_id ?? 0
-        );
-
-        $planId = (int) (
-            $stripeSubscription->metadata->plan_id ?? 0
-        );
+        $userId = (int) ($remote->metadata->user_id ?? 0);
+        $planId = (int) ($remote->metadata->plan_id ?? 0);
 
         if ($userId <= 0 || $planId <= 0) {
             throw new RuntimeException(
@@ -214,22 +302,74 @@ class StripeWebhookController extends Controller
             );
         }
 
+        $invoiceCustomer = $invoice->customer ?? null;
+
+        if (is_object($invoiceCustomer)) {
+            $invoiceCustomer = $invoiceCustomer->id ?? null;
+        }
+
+        $remoteCustomer = $remote->customer ?? null;
+
+        if (is_object($remoteCustomer)) {
+            $remoteCustomer = $remoteCustomer->id ?? null;
+        }
+
+        if (
+            !is_string($invoiceCustomer) ||
+            $invoiceCustomer === '' ||
+            $invoiceCustomer !== $remoteCustomer
+        ) {
+            throw new RuntimeException(
+                'Invoice customer does not match subscription.'
+            );
+        }
+
+        $existing = Subscription::query()
+            ->where(
+                'stripe_subscription_id',
+                $stripeSubscriptionId
+            )
+            ->lockForUpdate()
+            ->first();
+
+        if ($existing) {
+            if ($existing->status === 'cancelled') {
+                throw new RuntimeException(
+                    'Cancelled subscription cannot be renewed.'
+                );
+            }
+
+            if (
+                $existing->is_demo ||
+                (int) $existing->user_id !== $userId ||
+                (int) $existing->subscription_plan_id !== $planId ||
+                $existing->stripe_customer_id !== $invoiceCustomer
+            ) {
+                throw new RuntimeException(
+                    'Existing subscription identity mismatch.'
+                );
+            }
+        }
+
         $period = null;
 
-        foreach ($invoice->lines->data as $line) {
+        foreach (($invoice->lines->data ?? []) as $line) {
             $lineSubscriptionId =
                 $line->parent->subscription_item_details->subscription
                 ?? null;
 
             if ($lineSubscriptionId === $stripeSubscriptionId) {
-                $period = $line->period;
+                $period = $line->period ?? null;
                 break;
             }
         }
 
-        if (!$period || !$period->start || !$period->end) {
+        if (
+            !$period ||
+            !isset($period->start, $period->end)
+        ) {
             throw new RuntimeException(
-                'Invoice subscription billing period is missing.'
+                'Invoice billing period is missing.'
             );
         }
 
@@ -247,9 +387,7 @@ class StripeWebhookController extends Controller
                 $period->end,
                 'UTC'
             ),
-            stripeCustomerId: is_string($invoice->customer)
-                ? $invoice->customer
-                : ($invoice->customer->id ?? null)
+            stripeCustomerId: $invoiceCustomer
         );
     }
 }

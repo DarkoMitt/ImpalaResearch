@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ResearchRequest;
+use App\Models\Subscription;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminResearchRequestController extends Controller
@@ -17,6 +19,15 @@ class AdminResearchRequestController extends Controller
         'in_progress',
         'review',
         'completed',
+        'rejected',
+    ];
+
+    private const TRANSITIONS = [
+        'submitted' => ['in_progress', 'rejected'],
+        'in_progress' => ['review'],
+        'review' => ['completed'],
+        'completed' => [],
+        'rejected' => [],
     ];
 
     public function index(Request $request): View
@@ -108,14 +119,106 @@ class AdminResearchRequestController extends Controller
                 'required',
                 Rule::in(self::STATUSES),
             ],
+            'rejection_reason' => [
+                'nullable',
+                'string',
+                'max:2000',
+            ],
         ]);
 
-        $researchRequest->update([
-            'status' => $validated['status'],
-        ]);
+        $nextStatus = $validated['status'];
+
+        if (
+            $nextStatus !== 'rejected' &&
+            filled($validated['rejection_reason'] ?? null)
+        ) {
+            throw ValidationException::withMessages([
+                'rejection_reason' =>
+                    'A rejection reason can only be provided when rejecting a study.',
+            ]);
+        }
+
+        DB::transaction(function () use (
+            $researchRequest,
+            $nextStatus,
+            $validated
+        ) {
+            $study = ResearchRequest::query()
+                ->whereKey($researchRequest->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (!in_array(
+                $nextStatus,
+                self::TRANSITIONS[$study->status] ?? [],
+                true
+            )) {
+                throw ValidationException::withMessages([
+                    'status' =>
+                        'This status transition is not allowed. Refresh the page and try again.',
+                ]);
+            }
+
+            if ($nextStatus === 'rejected') {
+                $reserved = (int) $study->respondents_reserved;
+
+                if ($reserved > 0) {
+                    if (!$study->subscription_id) {
+                        throw ValidationException::withMessages([
+                            'status' =>
+                                'Cannot refund this study: its original subscription is missing.',
+                        ]);
+                    }
+
+                    $subscription = Subscription::query()
+                        ->whereKey($study->subscription_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (
+                        !$subscription ||
+                        (int) $subscription->user_id !== (int) $study->user_id
+                    ) {
+                        throw ValidationException::withMessages([
+                            'status' =>
+                                'Cannot refund this study: subscription ownership could not be verified.',
+                        ]);
+                    }
+
+                    if ((int) $subscription->respondents_used < $reserved) {
+                        throw ValidationException::withMessages([
+                            'status' =>
+                                'Cannot refund this study: respondent balance is inconsistent.',
+                        ]);
+                    }
+
+                    $subscription->decrement(
+                        'respondents_used',
+                        $reserved
+                    );
+                }
+            }
+
+            $updates = [
+                'status' => $nextStatus,
+            ];
+
+            if ($nextStatus === 'rejected') {
+                $updates['rejection_reason'] = trim(
+                    $validated['rejection_reason'] ?? ''
+                ) ?: null;
+            }
+
+            $study->update($updates);
+        }, 3);
 
         return redirect()
             ->route('admin.research-requests.show', $researchRequest)
-            ->with('success', 'Research request status updated successfully.');
+            ->with(
+                'success',
+                $nextStatus === 'rejected'
+                    ? 'Study rejected. Reserved respondents were returned where applicable.'
+                    : 'Research request status updated successfully.'
+            );
     }
 }

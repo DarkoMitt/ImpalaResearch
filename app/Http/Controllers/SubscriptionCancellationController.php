@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Subscription;
 use App\Models\SubscriptionCancellationRequest;
+use App\Services\StripeSubscriptionGateway;
+use App\Services\StripeSubscriptionIdentity;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Stripe\Exception\ApiErrorException;
-use Stripe\StripeClient;
+use Throwable;
 
 class SubscriptionCancellationController extends Controller
 {
@@ -150,6 +151,7 @@ class SubscriptionCancellationController extends Controller
 
         return $this->changeStripeRenewal(
             $subscription,
+            (int) $request->user()->id,
             $cancel
         );
     }
@@ -192,97 +194,129 @@ class SubscriptionCancellationController extends Controller
             return 'updated';
         }, 3);
 
-        if ($result === 'invalid') {
-            return back()->with(
-                'error',
-                'The demo subscription cannot be updated.'
-            );
-        }
-
-        if ($result === 'already_cancelled') {
-            return back()->with(
+        return match ($result) {
+            'updated' => back()->with(
+                'success',
+                $cancel
+                    ? 'Demo subscription cancellation scheduled.'
+                    : 'Demo subscription cancellation removed.'
+            ),
+            'already_cancelled' => back()->with(
                 'success',
                 'Cancellation is already scheduled.'
-            );
-        }
-
-        if ($result === 'already_active') {
-            return back()->with(
+            ),
+            'already_active' => back()->with(
                 'success',
                 'Automatic renewal is already enabled.'
-            );
-        }
-
-        return back()->with(
-            'success',
-            $cancel
-                ? 'Demo subscription cancellation scheduled.'
-                : 'Demo subscription cancellation removed.'
-        );
+            ),
+            default => back()->with(
+                'error',
+                'The demo subscription cannot be updated.'
+            ),
+        };
     }
 
     private function changeStripeRenewal(
         Subscription $subscription,
+        int $userId,
         bool $cancel
     ): RedirectResponse {
-        $secret = (string) config('services.stripe.secret');
-
-        // Only test-mode Stripe operations are enabled in this phase.
-        if (!str_starts_with($secret, 'sk_test_')) {
-            return back()->with(
-                'error',
-                'Stripe test mode is not configured.'
-            );
-        }
-
         try {
-            $stripe = new StripeClient($secret);
-
-            $remote = $stripe->subscriptions->update(
-                $subscription->stripe_subscription_id,
-                [
-                    'cancel_at_period_end' => $cancel,
-                ]
-            );
-
-            if (
-                (bool) $remote->cancel_at_period_end !== $cancel ||
-                $remote->status === 'canceled'
+            $result = DB::transaction(function () use (
+                $subscription,
+                $userId,
+                $cancel
             ) {
-                return back()->with(
+                $locked = Subscription::query()
+                    ->whereKey($subscription->id)
+                    ->where('user_id', $userId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if (
+                    !$this->isActive($locked) ||
+                    $locked->is_demo ||
+                    !$locked->stripe_subscription_id
+                ) {
+                    return 'invalid';
+                }
+
+                $gateway = app(
+                    StripeSubscriptionGateway::class
+                );
+
+                $identity = app(
+                    StripeSubscriptionIdentity::class
+                );
+
+                $remote = $gateway->retrieve(
+                    $locked->stripe_subscription_id
+                );
+
+                $identity->assertMatches(
+                    $locked,
+                    $remote
+                );
+
+                if (($remote->status ?? null) !== 'active') {
+                    return 'remote_inactive';
+                }
+
+                $remote = $gateway->changeAutoRenewal(
+                    $locked->stripe_subscription_id,
+                    $cancel
+                );
+
+                $identity->assertMatches(
+                    $locked,
+                    $remote
+                );
+
+                if (
+                    ($remote->status ?? null) !== 'active' ||
+                    (bool) ($remote->cancel_at_period_end ?? false)
+                        !== $cancel
+                ) {
+                    return 'not_confirmed';
+                }
+
+                // Never modify paid dates or respondent balances.
+                $locked->update([
+                    'cancel_at' => $cancel
+                        ? $locked->ends_at
+                        : null,
+                ]);
+
+                return 'updated';
+            }, 1);
+
+            return match ($result) {
+                'updated' => back()->with(
+                    'success',
+                    $cancel
+                        ? 'Subscription cancellation scheduled.'
+                        : 'Automatic renewal restored.'
+                ),
+                'remote_inactive' => back()->with(
+                    'error',
+                    'This subscription is not active in Stripe.'
+                ),
+                'not_confirmed' => back()->with(
                     'error',
                     'Stripe did not confirm the change.'
-                );
-            }
-
-            // Stripe is authoritative. Do not overwrite the paid period.
-            $subscription->refresh();
-
-            if (!$this->isActive($subscription)) {
-                return back()->with(
+                ),
+                default => back()->with(
                     'error',
-                    'Stripe was updated, but local synchronization requires review.'
-                );
-            }
+                    'This subscription cannot be updated.'
+                ),
+            };
 
-            $subscription->update([
-                'cancel_at' => $cancel
-                    ? $subscription->ends_at
-                    : null,
-            ]);
-
-            return back()->with(
-                'success',
-                $cancel
-                    ? 'Subscription cancellation scheduled.'
-                    : 'Automatic renewal restored.'
-            );
-        } catch (ApiErrorException $exception) {
+        } catch (Throwable $exception) {
             report($exception);
 
             return back()->with(
                 'error',
-                'Stripe could not update your subscription.'
+                'Subscription update could not be confirmed. Please check its status before retrying.'
             );
         }
     }

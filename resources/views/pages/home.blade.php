@@ -67,6 +67,14 @@
             return true;
         }
     }"
+
+    x-init="
+        $nextTick(() => {
+            if (@js($errors->any())) {
+                scrollTo('submit-request');
+            }
+        });
+    "
 >
     @include('partials.navbar')
 

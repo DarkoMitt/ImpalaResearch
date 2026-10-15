@@ -52,7 +52,6 @@
     */
 
     $activeSubscription = $user->activeSubscription();
-
     $activePlan = $activeSubscription?->plan;
 
     $remainingRespondents =
@@ -213,12 +212,10 @@
                 </p>
 
                 <div class="mt-[18px] h-[6px] overflow-hidden rounded-full bg-[#E4EAF2]">
-
                     <div
                         class="h-full rounded-full bg-[#4D7FCF]"
                         style="width: {{ $respondentsPercent }}%"
                     ></div>
-
                 </div>
 
             </div>
@@ -238,17 +235,11 @@
                 <p class="mt-[8px] text-[10px] text-[#777777]">
 
                     @if (!$activeSubscription)
-
                         No subscription information yet
-
                     @elseif ($cancellationScheduled)
-
                         Cancellation scheduled · No renewal
-
                     @else
-
                         Current subscription period ends on this date
-
                     @endif
 
                 </p>
@@ -531,12 +522,9 @@
                         $statusClass = $statusStyles[$status]
                             ?? 'bg-[#F1F1F1] text-[#777777]';
 
-                        $studyCode = 'REQ-' . str_pad(
-                            (string) $study->id,
-                            4,
-                            '0',
-                            STR_PAD_LEFT
-                        );
+                        // User-specific study number.
+                        // Global database ID remains unchanged.
+                        $studyCode = $study->user_request_code;
                     @endphp
 
                     <a

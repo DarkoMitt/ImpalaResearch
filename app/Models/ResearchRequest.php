@@ -9,6 +9,9 @@ class ResearchRequest extends Model
 {
     protected $fillable = [
         'user_id',
+        'user_request_number',
+        'subscription_id',
+        'respondents_reserved',
         'goal',
         'methods',
         'country',
@@ -21,6 +24,7 @@ class ResearchRequest extends Model
         'company',
         'notes',
         'status',
+        'rejection_reason',
     ];
 
     protected function casts(): array
@@ -28,11 +32,40 @@ class ResearchRequest extends Model
         return [
             'methods' => 'array',
             'sample_size' => 'integer',
+            'respondents_reserved' => 'integer',
+            'user_request_number' => 'integer',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function subscription(): BelongsTo
+    {
+        return $this->belongsTo(Subscription::class);
+    }
+
+    public function getUserRequestCodeAttribute(): string
+    {
+        $number = $this->user_request_number ?? $this->id;
+
+        return 'REQ-' . str_pad(
+            (string) $number,
+            4,
+            '0',
+            STR_PAD_LEFT
+        );
+    }
+
+    public function getAdminRequestCodeAttribute(): string
+    {
+        return 'REQ-' . str_pad(
+            (string) $this->id,
+            4,
+            '0',
+            STR_PAD_LEFT
+        );
     }
 }

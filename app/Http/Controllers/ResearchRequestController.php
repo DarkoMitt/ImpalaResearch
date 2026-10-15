@@ -2,15 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ResearchRequest;
+use App\Services\RespondentAllocationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ResearchRequestController extends Controller
 {
-    public function store(Request $request): RedirectResponse
-    {
+    public function store(
+        Request $request,
+        RespondentAllocationService $allocation
+    ): RedirectResponse {
         $validated = $request->validate([
             'goal' => [
                 'required',
@@ -104,7 +106,6 @@ class ResearchRequestController extends Controller
         */
 
         if (!$request->user()) {
-
             $request->session()->put(
                 'pending_research_request',
                 $data
@@ -122,20 +123,13 @@ class ResearchRequestController extends Controller
         |--------------------------------------------------------------------------
         | Authenticated submission
         |--------------------------------------------------------------------------
-        |
-        | Always use the email belonging to the authenticated account.
-        |
         */
 
         $user = $request->user();
 
         $data['email'] = $user->email;
 
-        ResearchRequest::create([
-            ...$data,
-            'user_id' => $user->id,
-            'status' => 'submitted',
-        ]);
+        $allocation->submit($user, $data);
 
         return redirect()
             ->route(

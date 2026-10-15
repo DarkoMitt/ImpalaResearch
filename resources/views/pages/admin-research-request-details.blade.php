@@ -15,10 +15,25 @@
         'in_progress' => 'In Progress',
         'review' => 'Review',
         'completed' => 'Completed',
+        'rejected' => 'Rejected',
     ];
 
     $statusLabel = $statusLabels[$researchRequest->status]
         ?? ucfirst(str_replace('_', ' ', $researchRequest->status));
+
+    $nextActions = match ($researchRequest->status) {
+        'submitted' => [
+            'in_progress' => 'Approve Study',
+            'rejected' => 'Reject Study',
+        ],
+        'in_progress' => [
+            'review' => 'Move to Review',
+        ],
+        'review' => [
+            'completed' => 'Complete Study',
+        ],
+        default => [],
+    };
 @endphp
 
 <div class="flex min-h-screen w-full bg-white">
@@ -52,7 +67,7 @@
                 </p>
             </div>
 
-            <span class="rounded-full bg-[#E7EFFF] px-[16px] py-[8px] text-[11px] font-medium text-[#3775D6]">
+            <span class="rounded-full px-[16px] py-[8px] text-[11px] font-medium {{ $researchRequest->status === 'rejected' ? 'bg-red-50 text-red-700' : 'bg-[#E7EFFF] text-[#3775D6]' }}">
                 {{ $statusLabel }}
             </span>
 
@@ -61,6 +76,16 @@
         @if (session('success'))
             <div class="mt-[24px] rounded-[8px] border border-[#B8DFC4] bg-[#E8F7EC] px-[18px] py-[14px] text-[12px] text-[#248743]">
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if ($errors->any())
+            <div class="mt-[24px] rounded-[8px] border border-red-200 bg-red-50 px-[18px] py-[14px] text-[12px] text-red-700">
+                <ul class="list-disc space-y-1 pl-4">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
             </div>
         @endif
 
@@ -150,6 +175,18 @@
                         </p>
                     </div>
 
+                    @if ($researchRequest->status === 'rejected')
+                        <div class="mt-[28px] border-t border-[#EAEAEA] pt-[22px]">
+                            <p class="text-[11px] font-medium text-red-700">
+                                Rejection Reason
+                            </p>
+
+                            <p class="mt-[9px] whitespace-pre-wrap break-words text-[12px] leading-[1.7] text-[#333333]">
+                                {{ $researchRequest->rejection_reason ?: 'No reason provided.' }}
+                            </p>
+                        </div>
+                    @endif
+
                 </section>
 
                 {{-- Contact Information --}}
@@ -197,66 +234,143 @@
             {{-- Right --}}
             <aside class="space-y-[18px]">
 
-                {{-- Change Status --}}
-                <section class="rounded-[12px] border border-[#BFC3C9] bg-white p-[22px]">
+                {{-- Manage Request --}}
+                <section
+                    x-data="{ rejectOpen: @js($errors->has('rejection_reason')) }"
+                    class="rounded-[12px] border border-[#BFC3C9] bg-white p-[22px]"
+                >
 
                     <h2 class="text-[14px] font-medium text-[#192231]">
                         Manage Request
                     </h2>
 
                     <p class="mt-[8px] text-[11px] leading-[1.6] text-[#777777]">
-                        Update the research request status.
+                        Manage the research request.
                         Changes will be visible on the user's dashboard.
                     </p>
 
-                    <form
-                        method="POST"
-                        action="{{ route('admin.research-requests.update-status', $researchRequest) }}"
-                        class="mt-[22px]"
-                    >
-                        @csrf
-                        @method('PATCH')
-
-                        <label for="status" class="block text-[11px] text-[#555555]">
-                            Request Status
-                        </label>
-
-                        <select
-                            id="status"
-                            name="status"
-                            class="mt-[9px] h-[42px] w-full rounded-[6px] border border-[#BFC3C9] bg-white px-[12px] text-[12px] text-[#333333] outline-none focus:border-[#4D7FCF]"
+                    @if (count($nextActions))
+                        <form
+                            method="POST"
+                            action="{{ route('admin.research-requests.update-status', $researchRequest) }}"
+                            class="mt-[22px] space-y-[10px]"
                         >
-                            <option value="submitted" @selected($researchRequest->status === 'submitted')>
-                                Submitted
-                            </option>
+                            @csrf
+                            @method('PATCH')
 
-                            <option value="in_progress" @selected($researchRequest->status === 'in_progress')>
-                                In Progress
-                            </option>
+                            @foreach ($nextActions as $value => $label)
+                                @if ($value === 'rejected')
+                                    <button
+                                        type="button"
+                                        @click="rejectOpen = true"
+                                        class="h-[42px] w-full rounded-[6px] bg-[#C84747] text-[12px] font-medium text-white transition hover:bg-[#AA3737]"
+                                    >
+                                        {{ $label }}
+                                    </button>
+                                @else
+                                    <button
+                                        type="submit"
+                                        name="status"
+                                        value="{{ $value }}"
+                                        class="h-[42px] w-full rounded-[6px] bg-[#4D7FCF] text-[12px] font-medium text-white transition hover:bg-[#416FB4]"
+                                    >
+                                        {{ $label }}
+                                    </button>
+                                @endif
+                            @endforeach
+                        </form>
+                    @else
+                        <p class="mt-[22px] text-[12px] text-[#777777]">
+                            This study has reached a final status.
+                            No further changes are available.
+                        </p>
+                    @endif
 
-                            <option value="review" @selected($researchRequest->status === 'review')>
-                                Review
-                            </option>
+                    @if ($researchRequest->status === 'submitted')
+                        <template x-teleport="body">
+                            <div
+                                x-show="rejectOpen"
+                                x-cloak
+                                @keydown.escape.window="rejectOpen = false"
+                                role="dialog"
+                                aria-modal="true"
+                                aria-labelledby="reject-study-title"
+                                class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4"
+                            >
+                                <div
+                                    @click.outside="rejectOpen = false"
+                                    class="w-full max-w-[480px] rounded-[12px] bg-white p-[28px] shadow-xl"
+                                >
+                                    <h3
+                                        id="reject-study-title"
+                                        class="text-[18px] font-medium text-[#192231]"
+                                    >
+                                        Reject Research Study
+                                    </h3>
 
-                            <option value="completed" @selected($researchRequest->status === 'completed')>
-                                Completed
-                            </option>
-                        </select>
+                                    <p class="mt-[12px] text-[12px] leading-[1.7] text-[#777777]">
+                                        Are you sure you want to reject this study?
+                                        Reserved respondents will be returned to the user.
+                                    </p>
 
-                        @error('status')
-                            <p class="mt-[8px] text-[11px] text-red-500">
-                                {{ $message }}
-                            </p>
-                        @enderror
+                                    <form
+                                        method="POST"
+                                        action="{{ route('admin.research-requests.update-status', $researchRequest) }}"
+                                        class="mt-[24px]"
+                                    >
+                                        @csrf
+                                        @method('PATCH')
 
-                        <button
-                            type="submit"
-                            class="mt-[18px] h-[42px] w-full rounded-[6px] bg-[#4D7FCF] text-[12px] font-medium text-white transition hover:bg-[#416FB4]"
-                        >
-                            Update Status
-                        </button>
+                                        <input
+                                            type="hidden"
+                                            name="status"
+                                            value="rejected"
+                                        >
 
-                    </form>
+                                        <label
+                                            for="rejection_reason"
+                                            class="block text-[12px] font-medium text-[#192231]"
+                                        >
+                                            Reason for rejection (optional)
+                                        </label>
+
+                                        <textarea
+                                            id="rejection_reason"
+                                            name="rejection_reason"
+                                            rows="5"
+                                            maxlength="2000"
+                                            placeholder="Explain why this study cannot be approved..."
+                                            class="mt-[9px] w-full resize-y rounded-[6px] border border-[#BFC3C9] px-[13px] py-[12px] text-[12px] text-[#333333] outline-none focus:border-[#4D7FCF]"
+                                        >{{ old('rejection_reason') }}</textarea>
+
+                                        <p class="mt-[8px] text-[11px] text-[#888888]">
+                                            This reason can be shown to the user when the study is rejected.
+                                        </p>
+
+                                        <div class="mt-[24px] flex justify-end gap-[10px]">
+
+                                            <button
+                                                type="button"
+                                                @click="rejectOpen = false"
+                                                class="h-[40px] rounded-[6px] border border-[#BFC3C9] px-[18px] text-[12px] text-[#555555] hover:bg-gray-50"
+                                            >
+                                                Cancel
+                                            </button>
+
+                                            <button
+                                                type="submit"
+                                                class="h-[40px] rounded-[6px] bg-[#C84747] px-[18px] text-[12px] font-medium text-white hover:bg-[#AA3737]"
+                                            >
+                                                Confirm Rejection
+                                            </button>
+
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </template>
+                    @endif
+
                 </section>
 
                 {{-- Account Information --}}
@@ -299,9 +413,11 @@
                         </div>
 
                     </div>
+
                 </section>
 
             </aside>
+
         </div>
     </main>
 </div>
