@@ -4,9 +4,10 @@
 @section('content')
 
 @php
-    // User-specific request number.
-    // The global database ID remains unchanged.
-    $code = $study->user_request_code;
+    // Personal sequential number and shared public request ID.
+    // The internal database ID remains unchanged.
+    $studyNumber = $study->study_number;
+    $publicRequestCode = $study->public_request_code;
 
     $status = $study->status ?? 'submitted';
 
@@ -68,7 +69,9 @@
             <div>
 
                 <p class="font-mono text-[11px] text-[#777777]">
-                    {{ $code }}
+                    Study {{ $studyNumber }}
+                    <span class="mx-[6px]">•</span>
+                    Request ID: {{ $publicRequestCode }}
                 </p>
 
                 <h1 class="mt-[8px] text-[25px] font-medium text-[#171717]">
@@ -386,14 +389,30 @@
 
                     <div class="mt-[20px] space-y-[18px]">
 
+                        {{-- Personal Study Number --}}
+
+                        <div>
+
+                            <p class="text-[11px] text-[#777777]">
+                                Study Number
+                            </p>
+
+                            <p class="mt-[5px] font-mono text-[12px] text-[#192231]">
+                                {{ $studyNumber }}
+                            </p>
+
+                        </div>
+
+                        {{-- Shared Public Request ID --}}
+
                         <div>
 
                             <p class="text-[11px] text-[#777777]">
                                 Request ID
                             </p>
 
-                            <p class="mt-[5px] font-mono text-[12px] text-[#192231]">
-                                {{ $code }}
+                            <p class="mt-[5px] break-all font-mono text-[12px] text-[#192231]">
+                                {{ $publicRequestCode }}
                             </p>
 
                         </div>

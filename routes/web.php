@@ -4,6 +4,8 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminResearchRequestController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\AdminContactRequestController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
@@ -24,9 +26,26 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'pages.home')->name('home');
 
-Route::view('/contact', 'pages.contact')->name('contact');
+/*
+|--------------------------------------------------------------------------
+| Contact & Demo
+|--------------------------------------------------------------------------
+|
+| GET: Display the public Contact & Demo page.
+| POST: Validate and store contact/demo submissions.
+|
+*/
 
-Route::view('/thank-you', 'pages.thank-you')->name('thank-you');
+Route::view('/contact', 'pages.contact')
+    ->name('contact');
+
+Route::post(
+    '/contact',
+    [ContactController::class, 'store']
+)->name('contact.store');
+
+Route::view('/thank-you', 'pages.thank-you')
+    ->name('thank-you');
 
 Route::get('/pricing', [PricingController::class, 'index'])
     ->name('pricing');
@@ -142,6 +161,12 @@ Route::middleware(['auth', 'verified', 'admin'])
     ->name('admin.')
     ->group(function () {
 
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Dashboard
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             '/',
             [AdminDashboardController::class, 'index']
@@ -149,10 +174,33 @@ Route::middleware(['auth', 'verified', 'admin'])
             ->middleware(SubmitPendingResearchRequest::class)
             ->name('dashboard');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Users
+        |--------------------------------------------------------------------------
+        */
+
         Route::get(
             '/users',
             [AdminUserController::class, 'index']
         )->name('users');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin User Details
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/users/{user}',
+            [AdminUserController::class, 'show']
+        )->name('users.show');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Research Requests
+        |--------------------------------------------------------------------------
+        */
 
         Route::get(
             '/research-requests',
@@ -168,6 +216,27 @@ Route::middleware(['auth', 'verified', 'admin'])
             '/research-requests/{researchRequest}/status',
             [AdminResearchRequestController::class, 'updateStatus']
         )->name('research-requests.update-status');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Admin Contact & Demo Requests
+        |--------------------------------------------------------------------------
+        */
+
+        Route::get(
+            '/contact-requests',
+            [AdminContactRequestController::class, 'index']
+        )->name('contact-requests.index');
+
+        Route::get(
+            '/contact-requests/{contactRequest}',
+            [AdminContactRequestController::class, 'show']
+        )->name('contact-requests.show');
+
+        Route::patch(
+            '/contact-requests/{contactRequest}',
+            [AdminContactRequestController::class, 'update']
+        )->name('contact-requests.update');
 });
 
 /*

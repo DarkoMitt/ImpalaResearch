@@ -30,10 +30,20 @@ class AdminResearchRequestController extends Controller
         'rejected' => [],
     ];
 
+    /*
+    |--------------------------------------------------------------------------
+    | Research Requests List
+    |--------------------------------------------------------------------------
+    */
+
     public function index(Request $request): View
     {
         $filters = $request->validate([
-            'search' => ['nullable', 'string', 'max:255'],
+            'search' => [
+                'nullable',
+                'string',
+                'max:255',
+            ],
             'status' => [
                 'nullable',
                 Rule::in(self::STATUSES),
@@ -43,11 +53,54 @@ class AdminResearchRequestController extends Controller
         $search = trim($filters['search'] ?? '');
         $status = $filters['status'] ?? '';
 
+        /*
+        |--------------------------------------------------------------------------
+        | All Research Requests
+        |--------------------------------------------------------------------------
+        |
+        | Admin can see requests from every user.
+        |
+        */
+
         $query = ResearchRequest::query()
             ->with('user');
 
+        /*
+        |--------------------------------------------------------------------------
+        | Search
+        |--------------------------------------------------------------------------
+        |
+        | Supported:
+        |
+        | REQ-K7M4P2  => Globally unique public request ID
+        | K7M4P2      => Public request ID without prefix
+        |
+        | Study #001  => Personal study number across all users
+        | Study 001   => Personal study number across all users
+        | #001        => Personal study number across all users
+        | 001         => Personal study number across all users
+        |
+        | Also searches:
+        | - Research goal
+        | - Submitted full name
+        | - Submitted email
+        | - Account name
+        | - Account email
+        |
+        | Study numbers are not globally unique.
+        | Public request IDs are globally unique.
+        |
+        */
+
         if ($search !== '') {
             $query->where(function ($query) use ($search) {
+
+                /*
+                |--------------------------------------------------------------------------
+                | Search by Research Goal and Contact Information
+                |--------------------------------------------------------------------------
+                */
+
                 $query
                     ->where('goal', 'like', "%{$search}%")
                     ->orWhere('full_name', 'like', "%{$search}%")
@@ -58,15 +111,74 @@ class AdminResearchRequestController extends Controller
                             ->orWhere('email', 'like', "%{$search}%");
                     });
 
-                if (preg_match('/^(?:REQ-0*)?([0-9]+)$/i', $search, $matches)) {
-                    $query->orWhere('id', (int) $matches[1]);
+                /*
+                |--------------------------------------------------------------------------
+                | Search by Public Request ID
+                |--------------------------------------------------------------------------
+                */
+
+                $normalizedPublicId = strtoupper($search);
+
+                if (preg_match('/^[A-Z0-9]{6}$/', $normalizedPublicId)) {
+                    $normalizedPublicId = 'REQ-' . $normalizedPublicId;
+                }
+
+                if (preg_match(
+                    '/^REQ-[A-Z0-9]{6}$/',
+                    $normalizedPublicId
+                )) {
+                    $query->orWhere(
+                        'public_request_id',
+                        $normalizedPublicId
+                    );
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | Search by Personal Study Number
+                |--------------------------------------------------------------------------
+                |
+                | Multiple users may have Study #001.
+                | Admin search intentionally returns all matching studies.
+                |
+                */
+
+                if (preg_match(
+                    '/^(?:study\s*)?#?0*([0-9]+)$/i',
+                    $search,
+                    $matches
+                )) {
+
+                    $studyNumber = (int) $matches[1];
+
+                    if (
+                        $studyNumber > 0 &&
+                        $studyNumber <= 4294967295
+                    ) {
+                        $query->orWhere(
+                            'user_request_number',
+                            $studyNumber
+                        );
+                    }
                 }
             });
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | Status Filter
+        |--------------------------------------------------------------------------
+        */
+
         if ($status !== '') {
             $query->where('status', $status);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Paginated Results and Statistics
+        |--------------------------------------------------------------------------
+        */
 
         return view('pages.admin-research-requests', [
             'requests' => $query
@@ -101,6 +213,12 @@ class AdminResearchRequestController extends Controller
         ]);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Show Single Research Request
+    |--------------------------------------------------------------------------
+    */
+
     public function show(ResearchRequest $researchRequest): View
     {
         $researchRequest->load('user');
@@ -109,6 +227,12 @@ class AdminResearchRequestController extends Controller
             'researchRequest' => $researchRequest,
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Update Research Request Status
+    |--------------------------------------------------------------------------
+    */
 
     public function updateStatus(
         Request $request,
@@ -128,6 +252,12 @@ class AdminResearchRequestController extends Controller
 
         $nextStatus = $validated['status'];
 
+        /*
+        |--------------------------------------------------------------------------
+        | Rejection Reason Validation
+        |--------------------------------------------------------------------------
+        */
+
         if (
             $nextStatus !== 'rejected' &&
             filled($validated['rejection_reason'] ?? null)
@@ -137,6 +267,16 @@ class AdminResearchRequestController extends Controller
                     'A rejection reason can only be provided when rejecting a study.',
             ]);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Transactional Status Update
+        |--------------------------------------------------------------------------
+        |
+        | Existing status transition and respondent refund logic
+        | is preserved.
+        |
+        */
 
         DB::transaction(function () use (
             $researchRequest,
@@ -148,6 +288,12 @@ class AdminResearchRequestController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            /*
+            |--------------------------------------------------------------------------
+            | Validate Allowed Transition
+            |--------------------------------------------------------------------------
+            */
+
             if (!in_array(
                 $nextStatus,
                 self::TRANSITIONS[$study->status] ?? [],
@@ -158,6 +304,12 @@ class AdminResearchRequestController extends Controller
                         'This status transition is not allowed. Refresh the page and try again.',
                 ]);
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | Refund Reserved Respondents on Rejection
+            |--------------------------------------------------------------------------
+            */
 
             if ($nextStatus === 'rejected') {
                 $reserved = (int) $study->respondents_reserved;
@@ -199,6 +351,12 @@ class AdminResearchRequestController extends Controller
                 }
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | Save Updated Status
+            |--------------------------------------------------------------------------
+            */
+
             $updates = [
                 'status' => $nextStatus,
             ];
@@ -211,6 +369,12 @@ class AdminResearchRequestController extends Controller
 
             $study->update($updates);
         }, 3);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Redirect with Success Message
+        |--------------------------------------------------------------------------
+        */
 
         return redirect()
             ->route('admin.research-requests.show', $researchRequest)

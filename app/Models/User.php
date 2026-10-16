@@ -31,10 +31,33 @@ class User extends Authenticatable
         ];
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Subscriptions
+    |--------------------------------------------------------------------------
+    */
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Research Requests
+    |--------------------------------------------------------------------------
+    */
+
+    public function researchRequests(): HasMany
+    {
+        return $this->hasMany(ResearchRequest::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Active Subscription
+    |--------------------------------------------------------------------------
+    */
 
     public function activeSubscription(): ?Subscription
     {
