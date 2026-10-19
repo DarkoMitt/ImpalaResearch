@@ -1,4 +1,88 @@
 
+@php
+    use App\Models\WebsiteContent;
+
+    $cms = fn (string $key, string $default): string =>
+        WebsiteContent::getValue(
+            'home',
+            'study_builder',
+            $key,
+            $default
+        ) ?? $default;
+
+    $heading = $cms(
+        'heading',
+        'What do you want to test?'
+    );
+
+    $description = $cms(
+        'description',
+        'Choose the area you want insights on. We’ll recommend the best research methods for you.'
+    );
+
+    $nextButtonText = $cms(
+        'next_button_text',
+        'Next'
+    );
+
+    /*
+     * Card structure:
+     * [internal goal value, visible title, visible description]
+     *
+     * Internal goal values must remain unchanged.
+     */
+    $cards = [
+        [
+            'Product Research',
+            $cms('product_title', 'Product'),
+            $cms(
+                'product_description',
+                'Understand which features or options matter most to your customers.'
+            ),
+        ],
+        [
+            'Pricing Research',
+            $cms('pricing_title', 'Pricing'),
+            $cms(
+                'pricing_description',
+                'Find the right price point people are willing to pay.'
+            ),
+        ],
+        [
+            'Concept Research',
+            $cms('concept_title', 'Concept'),
+            $cms(
+                'concept_description',
+                'Test new ideas or products before launching them.'
+            ),
+        ],
+        [
+            'Brand Research',
+            $cms('brand_title', 'Brand'),
+            $cms(
+                'brand_description',
+                'Measure how people see, recognize, and trust your brand.'
+            ),
+        ],
+        [
+            'UX Research',
+            $cms('ux_title', 'UX'),
+            $cms(
+                'ux_description',
+                'Improve how users interact with your website or app.'
+            ),
+        ],
+        [
+            'Not sure',
+            $cms('not_sure_title', 'Not sure'),
+            $cms(
+                'not_sure_description',
+                'Not sure what you need? We’ll help you choose the right approach.'
+            ),
+        ],
+    ];
+@endphp
+
 <section
     id="start-study"
     class="scroll-mt-[74px] bg-white px-6 py-[76px] md:px-10 lg:px-0"
@@ -6,49 +90,15 @@
     <div class="mx-auto w-full max-w-[980px] text-center">
 
         <h2 class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]">
-            What do you want to test?
+            {{ $heading }}
         </h2>
 
         <p class="mx-auto mt-[16px] max-w-[560px] text-[13px] leading-[1.5] text-[#686868]">
-            Choose the area you want insights on. We’ll recommend the best research methods for you.
+            {{ $description }}
         </p>
 
-        @php
-            $cards = [
-                [
-                    'Product Research',
-                    'Product',
-                    'Understand which features or options matter most to your customers.'
-                ],
-                [
-                    'Pricing Research',
-                    'Pricing',
-                    'Find the right price point people are willing to pay.'
-                ],
-                [
-                    'Concept Research',
-                    'Concept',
-                    'Test new ideas or products before launching them.'
-                ],
-                [
-                    'Brand Research',
-                    'Brand',
-                    'Measure how people see, recognize, and trust your brand.'
-                ],
-                [
-                    'UX Research',
-                    'UX',
-                    'Improve how users interact with your website or app.'
-                ],
-                [
-                    'Not sure',
-                    'Not sure',
-                    'Not sure what you need? We’ll help you choose the right approach.'
-                ],
-            ];
-        @endphp
-
         <div class="mx-auto mt-[76px] grid max-w-[790px] gap-[22px] text-left md:grid-cols-3">
+
             @foreach ($cards as $card)
                 <button
                     type="button"
@@ -68,6 +118,7 @@
                     </p>
                 </button>
             @endforeach
+
         </div>
 
         <button
@@ -82,7 +133,7 @@
             "
             class="mt-[72px] h-[42px] w-[240px] rounded-[3px] bg-[#4D7FCF] text-[13px] font-medium text-white transition hover:bg-[#416FB4]"
         >
-            Next
+            {{ $nextButtonText }}
         </button>
 
     </div>

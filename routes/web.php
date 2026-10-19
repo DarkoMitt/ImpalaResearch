@@ -4,6 +4,7 @@
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminResearchRequestController;
 use App\Http\Controllers\Admin\AdminUserController;
+use App\Http\Controllers\Admin\AdminWebsiteCmsController;
 use App\Http\Controllers\AdminContactRequestController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\PaymentController;
@@ -30,10 +31,6 @@ Route::view('/', 'pages.home')->name('home');
 |--------------------------------------------------------------------------
 | Contact & Demo
 |--------------------------------------------------------------------------
-|
-| GET: Display the public Contact & Demo page.
-| POST: Validate and store contact/demo submissions.
-|
 */
 
 Route::view('/contact', 'pages.contact')
@@ -185,12 +182,6 @@ Route::middleware(['auth', 'verified', 'admin'])
             [AdminUserController::class, 'index']
         )->name('users');
 
-        /*
-        |--------------------------------------------------------------------------
-        | Admin User Details
-        |--------------------------------------------------------------------------
-        */
-
         Route::get(
             '/users/{user}',
             [AdminUserController::class, 'show']
@@ -237,6 +228,40 @@ Route::middleware(['auth', 'verified', 'admin'])
             '/contact-requests/{contactRequest}',
             [AdminContactRequestController::class, 'update']
         )->name('contact-requests.update');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Website CMS
+        |--------------------------------------------------------------------------
+        |
+        | Draft / Preview / Publish workflow.
+        | All routes are protected by admin middleware.
+        |
+        */
+
+        // CMS Dashboard
+        Route::get(
+            '/website-cms',
+            [AdminWebsiteCmsController::class, 'index']
+        )->name('website-cms.index');
+
+        // Save Draft (does not change public content)
+        Route::patch(
+            '/website-cms',
+            [AdminWebsiteCmsController::class, 'update']
+        )->name('website-cms.update');
+
+        // Publish saved drafts
+        Route::post(
+            '/website-cms/publish',
+            [AdminWebsiteCmsController::class, 'publish']
+        )->name('website-cms.publish');
+
+        // Discard saved drafts
+        Route::post(
+            '/website-cms/discard',
+            [AdminWebsiteCmsController::class, 'discard']
+        )->name('website-cms.discard');
 });
 
 /*

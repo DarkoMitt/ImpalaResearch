@@ -1,3 +1,42 @@
+
+@php
+    use App\Models\WebsiteContent;
+
+    /*
+     * Read only published CMS content.
+     *
+     * If a field has never been published,
+     * retain its original navigation label.
+     */
+    $goalLabel = WebsiteContent::getValue(
+        'home',
+        'study_progress',
+        'goal_label',
+        'Goal'
+    );
+
+    $methodLabel = WebsiteContent::getValue(
+        'home',
+        'study_progress',
+        'method_label',
+        'Method'
+    );
+
+    $audienceLabel = WebsiteContent::getValue(
+        'home',
+        'study_progress',
+        'audience_label',
+        'Audience'
+    );
+
+    $reviewLabel = WebsiteContent::getValue(
+        'home',
+        'study_progress',
+        'review_label',
+        'Review'
+    );
+@endphp
+
 <div
     x-data="{
         activeStep: 'goal',
@@ -91,6 +130,8 @@
                 ></div>
 
                 <div class="relative grid grid-cols-4 text-center text-[12px]">
+
+                    {{-- Step 1: Goal --}}
                     <button
                         type="button"
                         @click="goTo('start-study', 'goal')"
@@ -99,9 +140,10 @@
                             ? 'font-medium text-[#242424]'
                             : 'text-[#A7A7A7]'"
                     >
-                        Goal
+                        {{ $goalLabel }}
                     </button>
 
+                    {{-- Step 2: Method --}}
                     <button
                         type="button"
                         @click="goTo('method', 'method')"
@@ -110,9 +152,10 @@
                             ? 'font-medium text-[#242424]'
                             : 'text-[#A7A7A7]'"
                     >
-                        Method
+                        {{ $methodLabel }}
                     </button>
 
+                    {{-- Step 3: Audience --}}
                     <button
                         type="button"
                         @click="goTo('study-details', 'audience')"
@@ -121,9 +164,10 @@
                             ? 'font-medium text-[#242424]'
                             : 'text-[#A7A7A7]'"
                     >
-                        Audience
+                        {{ $audienceLabel }}
                     </button>
 
+                    {{-- Step 4: Review --}}
                     <button
                         type="button"
                         @click="goTo('submit-request', 'review')"
@@ -132,8 +176,9 @@
                             ? 'font-medium text-[#242424]'
                             : 'text-[#A7A7A7]'"
                     >
-                        Review
+                        {{ $reviewLabel }}
                     </button>
+
                 </div>
             </div>
         </div>

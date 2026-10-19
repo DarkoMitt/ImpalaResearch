@@ -25,13 +25,18 @@
             'active' => request()->routeIs('admin.contact-requests.*'),
             'icon' => 'contact',
         ],
+        [
+            'label' => 'Website CMS',
+            'route' => 'admin.website-cms.index',
+            'active' => request()->routeIs('admin.website-cms.*'),
+            'icon' => 'cms',
+        ],
     ];
 @endphp
 
 <aside
     class="sticky top-0 z-30 flex h-screen w-[235px] shrink-0 flex-col overflow-hidden border-r border-[#E7EDF7] bg-white shadow-[4px_0_24px_rgba(31,65,120,0.025)]"
 >
-
     {{-- Brand --}}
     <div class="shrink-0 px-6 pb-7 pt-9">
 
@@ -50,7 +55,6 @@
         <div class="mt-7 flex items-center gap-3 rounded-xl border border-[#DFEAF9] bg-gradient-to-r from-[#F2F7FF] to-white px-3 py-3">
 
             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#E0ECFF] text-[#3478F6]">
-
                 <svg
                     class="h-[19px] w-[19px]"
                     fill="none"
@@ -63,7 +67,6 @@
                     <rect x="3" y="3" width="18" height="18" rx="4"></rect>
                     <path d="M8 8h8M8 12h8M8 16h5"></path>
                 </svg>
-
             </div>
 
             <div class="min-w-0">
@@ -84,13 +87,11 @@
     <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-5">
 
         <div class="mb-3 flex items-center gap-3 px-3">
-
             <p class="shrink-0 text-[10px] font-bold uppercase tracking-[0.12em] text-[#9AA6B7]">
                 Workspace
             </p>
 
             <span class="h-px flex-1 bg-[#E9EEF6]"></span>
-
         </div>
 
         <nav class="space-y-1.5" aria-label="Admin navigation">
@@ -186,6 +187,23 @@
                                 <path d="m3 7 9 6 9-6"></path>
                             </svg>
 
+                        @elseif($item['icon'] === 'cms')
+
+                            <svg
+                                class="h-[19px] w-[19px]"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                viewBox="0 0 24 24"
+                            >
+                                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                                <path d="M3 9h18"></path>
+                                <path d="M8 6.5h.01M11 6.5h.01"></path>
+                                <path d="m9 15 2 2 4-4"></path>
+                            </svg>
+
                         @endif
 
                     </span>
@@ -211,41 +229,6 @@
                 </a>
 
             @endforeach
-
-            {{-- Website CMS: Not implemented yet --}}
-            <div
-                class="flex min-h-11 items-center gap-3 rounded-xl px-3 py-3 text-[11px] font-semibold text-[#A5AFBF]"
-                title="Coming soon"
-            >
-
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center">
-
-                    <svg
-                        class="h-[19px] w-[19px]"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        viewBox="0 0 24 24"
-                    >
-                        <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                        <path d="M3 9h18"></path>
-                        <path d="M8 6.5h.01M11 6.5h.01"></path>
-                        <path d="m9 15 2 2 4-4"></path>
-                    </svg>
-
-                </span>
-
-                <span class="min-w-0 flex-1">
-                    Website CMS
-                </span>
-
-                <span class="rounded-full bg-[#F1F4F8] px-2 py-1 text-[9px] font-semibold text-[#9AA6B7]">
-                    Soon
-                </span>
-
-            </div>
 
         </nav>
 
@@ -289,7 +272,6 @@
                 type="submit"
                 class="group flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left text-[11px] font-semibold text-[#E16A6A] transition hover:bg-[#FFF1F1] hover:text-[#D74747]"
             >
-
                 <svg
                     class="h-[19px] w-[19px] shrink-0"
                     fill="none"
@@ -319,7 +301,6 @@
                 >
                     <path d="m9 18 6-6-6-6"></path>
                 </svg>
-
             </button>
         </form>
 
