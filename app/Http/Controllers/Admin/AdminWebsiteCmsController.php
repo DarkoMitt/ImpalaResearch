@@ -17,7 +17,7 @@ class AdminWebsiteCmsController extends Controller
      * Registered CMS sections and editable fields.
      *
      * Internal application values, including research
-     * goal identifiers, are intentionally excluded.
+     * goal and method identifiers, are excluded.
      */
     private const CMS_SECTIONS = [
         'home' => [
@@ -57,6 +57,93 @@ class AdminWebsiteCmsController extends Controller
                 'not_sure_description' => 'textarea',
 
                 'next_button_text' => 'text',
+            ],
+
+            'method_section' => [
+                'heading_prefix' => 'text',
+                'description' => 'textarea',
+
+                'eye_tracking_title' => 'text',
+                'eye_tracking_description' => 'textarea',
+
+                'clicks_title' => 'text',
+                'clicks_description' => 'textarea',
+
+                'emotion_title' => 'text',
+                'emotion_description' => 'textarea',
+
+                'surveys_title' => 'text',
+                'surveys_description' => 'textarea',
+
+                'rtm_title' => 'text',
+                'rtm_description' => 'textarea',
+
+                'next_button_text' => 'text',
+            ],
+
+            'study_details' => [
+                'heading' => 'text',
+                'description' => 'textarea',
+
+                'country_label' => 'text',
+                'country_placeholder' => 'text',
+
+                'audience_label' => 'text',
+                'audience_placeholder' => 'text',
+
+                'sample_size_label' => 'text',
+
+                'timeline_label' => 'text',
+                'timeline_placeholder' => 'text',
+
+                'notes_label' => 'text',
+                'notes_placeholder' => 'textarea',
+
+                'next_button_text' => 'text',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Section 06 — Submit Request
+            |--------------------------------------------------------------------------
+            */
+            'submit_request' => [
+                'heading' => 'text',
+                'description' => 'textarea',
+
+                'full_name_label' => 'text',
+                'full_name_placeholder' => 'text',
+
+                'email_label' => 'text',
+                'email_placeholder' => 'text',
+
+                'phone_label' => 'text',
+                'phone_placeholder' => 'text',
+
+                'company_label' => 'text',
+                'company_placeholder' => 'text',
+                'optional_label' => 'text',
+
+                'notes_heading' => 'text',
+                'notes_empty_text' => 'text',
+                'edit_notes_text' => 'text',
+
+                'submit_button_text' => 'text',
+                'submitting_text' => 'text',
+                'guest_notice' => 'textarea',
+
+                'summary_heading' => 'text',
+                'summary_edit_text' => 'text',
+
+                'summary_goal_label' => 'text',
+                'summary_method_label' => 'text',
+                'summary_country_label' => 'text',
+                'summary_audience_label' => 'text',
+                'summary_sample_size_label' => 'text',
+                'summary_timeline_label' => 'text',
+
+                'not_selected_text' => 'text',
+                'not_provided_text' => 'text',
             ],
         ],
     ];
@@ -102,6 +189,93 @@ class AdminWebsiteCmsController extends Controller
 
                 'next_button_text',
             ],
+
+            'method_section' => [
+                'heading_prefix',
+                'description',
+
+                'eye_tracking_title',
+                'eye_tracking_description',
+
+                'clicks_title',
+                'clicks_description',
+
+                'emotion_title',
+                'emotion_description',
+
+                'surveys_title',
+                'surveys_description',
+
+                'rtm_title',
+                'rtm_description',
+
+                'next_button_text',
+            ],
+
+            'study_details' => [
+                'heading',
+                'description',
+
+                'country_label',
+                'country_placeholder',
+
+                'audience_label',
+                'audience_placeholder',
+
+                'sample_size_label',
+
+                'timeline_label',
+                'timeline_placeholder',
+
+                'notes_label',
+                'notes_placeholder',
+
+                'next_button_text',
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Submit Request Required Fields
+            |--------------------------------------------------------------------------
+            */
+            'submit_request' => [
+                'heading',
+                'description',
+
+                'full_name_label',
+                'full_name_placeholder',
+
+                'email_label',
+                'email_placeholder',
+
+                'phone_label',
+                'phone_placeholder',
+
+                'company_label',
+                'company_placeholder',
+                'optional_label',
+
+                'notes_heading',
+                'notes_empty_text',
+                'edit_notes_text',
+
+                'submit_button_text',
+                'submitting_text',
+                'guest_notice',
+
+                'summary_heading',
+                'summary_edit_text',
+
+                'summary_goal_label',
+                'summary_method_label',
+                'summary_country_label',
+                'summary_audience_label',
+                'summary_sample_size_label',
+                'summary_timeline_label',
+
+                'not_selected_text',
+                'not_provided_text',
+            ],
         ],
     ];
 
@@ -137,12 +311,101 @@ class AdminWebsiteCmsController extends Controller
 
                 'next_button_text' => 30,
             ],
+
+            'method_section' => [
+                'heading_prefix' => 120,
+                'description' => 500,
+
+                'eye_tracking_title' => 60,
+                'eye_tracking_description' => 300,
+
+                'clicks_title' => 60,
+                'clicks_description' => 300,
+
+                'emotion_title' => 60,
+                'emotion_description' => 300,
+
+                'surveys_title' => 60,
+                'surveys_description' => 300,
+
+                'rtm_title' => 60,
+                'rtm_description' => 300,
+
+                'next_button_text' => 30,
+            ],
+
+            'study_details' => [
+                'heading' => 120,
+                'description' => 500,
+
+                'country_label' => 80,
+                'country_placeholder' => 80,
+
+                'audience_label' => 80,
+                'audience_placeholder' => 150,
+
+                'sample_size_label' => 80,
+
+                'timeline_label' => 80,
+                'timeline_placeholder' => 80,
+
+                'notes_label' => 150,
+                'notes_placeholder' => 300,
+
+                'next_button_text' => 30,
+            ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Submit Request Character Limits
+            |--------------------------------------------------------------------------
+            */
+            'submit_request' => [
+                'heading' => 120,
+                'description' => 500,
+
+                'full_name_label' => 80,
+                'full_name_placeholder' => 120,
+
+                'email_label' => 80,
+                'email_placeholder' => 120,
+
+                'phone_label' => 80,
+                'phone_placeholder' => 120,
+
+                'company_label' => 80,
+                'company_placeholder' => 120,
+                'optional_label' => 40,
+
+                'notes_heading' => 100,
+                'notes_empty_text' => 150,
+                'edit_notes_text' => 60,
+
+                'submit_button_text' => 60,
+                'submitting_text' => 60,
+                'guest_notice' => 300,
+
+                'summary_heading' => 100,
+                'summary_edit_text' => 60,
+
+                'summary_goal_label' => 80,
+                'summary_method_label' => 80,
+                'summary_country_label' => 80,
+                'summary_audience_label' => 80,
+                'summary_sample_size_label' => 80,
+                'summary_timeline_label' => 80,
+
+                'not_selected_text' => 100,
+                'not_provided_text' => 100,
+            ],
         ],
     ];
 
     /**
      * Display CMS dashboard.
      */
+
+    
     public function index(): View
     {
         $contents = WebsiteContent::query()
@@ -164,8 +427,17 @@ class AdminWebsiteCmsController extends Controller
             ->where('is_published', false)
             ->count();
 
-        $draftContents = WebsiteContent::query()
-            ->withDraft()
+        /*
+         * Count unique CMS sections containing saved drafts.
+         *
+         * Multiple draft fields in one section count as one.
+         * The page + section combination identifies a
+         * unique section across the website.
+         */
+        $draftContents = $contents
+            ->flatten(1)
+            ->filter(fn ($content) => $content->has_draft)
+            ->unique(fn ($content) => $content->page . ':' . $content->section)
             ->count();
 
         return view('pages.admin-website-cms', compact(
@@ -513,6 +785,7 @@ class AdminWebsiteCmsController extends Controller
      * Existing CMS fields retain the original
      * maximum of 10,000 characters.
      */
+
     private function getFieldMaxLength(
         string $page,
         string $section,
@@ -535,6 +808,7 @@ class AdminWebsiteCmsController extends Controller
                 'title' => 'Hero Title',
                 'subtitle' => 'Hero Description',
                 'button_text' => 'CTA Button Text',
+
                 default => str_replace('_', ' ', $key),
             };
         }
@@ -545,6 +819,7 @@ class AdminWebsiteCmsController extends Controller
                 'method_label' => 'Method Label',
                 'audience_label' => 'Audience Label',
                 'review_label' => 'Review Label',
+
                 default => str_replace('_', ' ', $key),
             };
         }
@@ -573,6 +848,109 @@ class AdminWebsiteCmsController extends Controller
                 'not_sure_description' => 'Not Sure Card Description',
 
                 'next_button_text' => 'Next Button Text',
+
+                default => str_replace('_', ' ', $key),
+            };
+        }
+
+        if ($page === 'home' && $section === 'method_section') {
+            return match ($key) {
+                'heading_prefix' => 'Method Section Heading Prefix',
+                'description' => 'Method Section Description',
+
+                'eye_tracking_title' => 'Eye Tracking Display Title',
+                'eye_tracking_description' => 'Eye Tracking Description',
+
+                'clicks_title' => 'Clicks Display Title',
+                'clicks_description' => 'Clicks Description',
+
+                'emotion_title' => 'Emotion Measurement Display Title',
+                'emotion_description' => 'Emotion Measurement Description',
+
+                'surveys_title' => 'Surveys Display Title',
+                'surveys_description' => 'Surveys Description',
+
+                'rtm_title' => 'RTM Display Title',
+                'rtm_description' => 'RTM Description',
+
+                'next_button_text' => 'Next Button Text',
+
+                default => str_replace('_', ' ', $key),
+            };
+        }
+
+        if ($page === 'home' && $section === 'study_details') {
+            return match ($key) {
+                'heading' => 'Study Details Heading',
+                'description' => 'Study Details Description',
+
+                'country_label' => 'Country Label',
+                'country_placeholder' => 'Country Placeholder',
+
+                'audience_label' => 'Audience Label',
+                'audience_placeholder' => 'Audience Placeholder',
+
+                'sample_size_label' => 'Sample Size Label',
+
+                'timeline_label' => 'Timeline Label',
+                'timeline_placeholder' => 'Timeline Placeholder',
+
+                'notes_label' => 'Notes Label',
+                'notes_placeholder' => 'Notes Placeholder',
+
+                'next_button_text' => 'Next Button Text',
+
+                default => str_replace('_', ' ', $key),
+            };
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Section 06 — Submit Request Field Labels
+        |--------------------------------------------------------------------------
+        |
+        | These labels are used for server-side validation
+        | errors in the CMS dashboard.
+        |
+        */
+        if ($page === 'home' && $section === 'submit_request') {
+            return match ($key) {
+                'heading' => 'Submit Request Heading',
+                'description' => 'Submit Request Description',
+
+                'full_name_label' => 'Full Name Label',
+                'full_name_placeholder' => 'Full Name Placeholder',
+
+                'email_label' => 'Email Label',
+                'email_placeholder' => 'Email Placeholder',
+
+                'phone_label' => 'Phone Number Label',
+                'phone_placeholder' => 'Phone Number Placeholder',
+
+                'company_label' => 'Company Label',
+                'company_placeholder' => 'Company Placeholder',
+                'optional_label' => 'Optional Field Label',
+
+                'notes_heading' => 'Additional Notes Heading',
+                'notes_empty_text' => 'Empty Notes Message',
+                'edit_notes_text' => 'Edit Notes Button Text',
+
+                'submit_button_text' => 'Submit Request Button Text',
+                'submitting_text' => 'Submitting Button Text',
+                'guest_notice' => 'Guest Login Notice',
+
+                'summary_heading' => 'Study Summary Heading',
+                'summary_edit_text' => 'Study Summary Edit Button',
+
+                'summary_goal_label' => 'Summary Goal Label',
+                'summary_method_label' => 'Summary Method Label',
+                'summary_country_label' => 'Summary Target Market Label',
+                'summary_audience_label' => 'Summary Audience Label',
+                'summary_sample_size_label' => 'Summary Sample Size Label',
+                'summary_timeline_label' => 'Summary Timeline Label',
+
+                'not_selected_text' => 'Not Selected Placeholder',
+                'not_provided_text' => 'Not Provided Placeholder',
 
                 default => str_replace('_', ' ', $key),
             };

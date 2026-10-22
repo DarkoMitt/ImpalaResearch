@@ -1,4 +1,93 @@
 
+@php
+    use App\Models\WebsiteContent;
+
+    /*
+     * Load published CMS content.
+     *
+     * If no content has been published for a field,
+     * keep the original website text as fallback.
+     */
+    $cms = fn (string $key, string $default): string =>
+        WebsiteContent::getValue(
+            'home',
+            'method_section',
+            $key,
+            $default
+        ) ?? $default;
+
+    $headingPrefix = $cms(
+        'heading_prefix',
+        'Recommended methods for'
+    );
+
+    $sectionDescription = $cms(
+        'description',
+        'Based on your selection, these methods will give you the most relevant insights.'
+    );
+
+    $nextButtonText = $cms(
+        'next_button_text',
+        'Next'
+    );
+
+    /*
+     * Each method has:
+     *
+     * 0 - Protected internal identifier
+     * 1 - Editable display title
+     * 2 - Editable description
+     *
+     * Never replace internal identifiers with CMS text.
+     * They are used by Alpine.js and research forms.
+     */
+    $methods = [
+        [
+            'Eye Tracking',
+            $cms('eye_tracking_title', 'Eye Tracking'),
+            $cms(
+                'eye_tracking_description',
+                'Understand where people look, what captures attention, and how visual elements are viewed.'
+            ),
+        ],
+        [
+            'Clicks',
+            $cms('clicks_title', 'Clicks'),
+            $cms(
+                'clicks_description',
+                'Tracks user interactions to understand engagement, navigation behavior, and decision-making.'
+            ),
+        ],
+        [
+            'Emotion Measurement',
+            $cms('emotion_title', 'Emotion Measurement'),
+            $cms(
+                'emotion_description',
+                'Analyzes emotional reactions to brands, ads, products, or experiences.'
+            ),
+        ],
+        [
+            'Surveys',
+            $cms('surveys_title', 'Surveys'),
+            $cms(
+                'surveys_description',
+                'Collects direct consumer feedback, opinions, attitudes, and purchase intentions.'
+            ),
+        ],
+        [
+            'RTM (Reaction Time Measurement)',
+            $cms(
+                'rtm_title',
+                'RTM (Reaction Time Measurement)'
+            ),
+            $cms(
+                'rtm_description',
+                'Measures reaction speed to understand automatic responses, associations, and decision-making.'
+            ),
+        ],
+    ];
+@endphp
+
 <section
     id="method"
     class="scroll-mt-[78px] bg-white px-6 py-[110px]"
@@ -6,38 +95,13 @@
     <div class="mx-auto w-full max-w-[1120px] text-center">
 
         <h2 class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]">
-            Recommended methods for
+            {{ $headingPrefix }}
             <span x-text="goal || 'your research'"></span>
         </h2>
 
         <p class="mx-auto mt-[16px] max-w-[520px] text-[13px] leading-[1.5] text-[#686868]">
-            Based on your selection, these methods will give you the most relevant insights.
+            {{ $sectionDescription }}
         </p>
-
-        @php
-            $methods = [
-                [
-                    'Eye Tracking',
-                    'Understand where people look, what captures attention, and how visual elements are viewed.'
-                ],
-                [
-                    'Clicks',
-                    'Tracks user interactions to understand engagement, navigation behavior, and decision-making.'
-                ],
-                [
-                    'Emotion Measurement',
-                    'Analyzes emotional reactions to brands, ads, products, or experiences.'
-                ],
-                [
-                    'Surveys',
-                    'Collects direct consumer feedback, opinions, attitudes, and purchase intentions.'
-                ],
-                [
-                    'RTM (Reaction Time Measurement)',
-                    'Measures reaction speed to understand automatic responses, associations, and decision-making.'
-                ],
-            ];
-        @endphp
 
         <div class="mx-auto mt-[76px] grid max-w-[790px] gap-[12px] md:grid-cols-2">
 
@@ -67,11 +131,11 @@
                         <div class="flex-1 text-left">
 
                             <h3 class="text-left text-[14px] font-medium text-[#242424]">
-                                {{ $item[0] }}
+                                {{ $item[1] }}
                             </h3>
 
                             <p class="mt-[24px] text-left text-[11px] leading-[1.35] text-[#5F5F5F]">
-                                {{ $item[1] }}
+                                {{ $item[2] }}
                             </p>
 
                         </div>
@@ -118,7 +182,7 @@
             "
             class="mt-[30px] h-[42px] w-[240px] rounded-[3px] bg-[#4D7FCF] text-[13px] font-medium text-white transition hover:bg-[#416FB4]"
         >
-            Next
+            {{ $nextButtonText }}
         </button>
 
     </div>

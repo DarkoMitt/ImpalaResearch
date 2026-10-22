@@ -1,4 +1,14 @@
 
+@php
+    $submitContent = fn (string $key, string $default) =>
+        \App\Models\WebsiteContent::getValue(
+            'home',
+            'submit_request',
+            $key,
+            $default
+        );
+@endphp
+
 <section
     id="submit-request"
     class="scroll-mt-[74px] bg-white px-6 py-[110px] md:px-10 lg:px-0"
@@ -63,11 +73,11 @@
     >
         <div class="text-center">
             <h2 class="text-[28px] font-medium leading-tight tracking-[-0.6px] text-[#242424]">
-                Almost there! Let’s get your details
+                {{ $submitContent('heading', 'Almost there! Let’s get your details') }}
             </h2>
 
             <p class="mx-auto mt-[16px] max-w-[500px] text-[13px] leading-[1.5] text-[#686868]">
-                We’ll use this information to send you a tailored proposal.
+                {{ $submitContent('description', 'We’ll use this information to send you a tailored proposal.') }}
             </p>
         </div>
 
@@ -113,7 +123,8 @@
                     {{-- Full Name --}}
                     <label class="block">
                         <span class="text-[13px] font-normal text-[#242424]">
-                            Full Name <span class="text-red-500">*</span>
+                            {{ $submitContent('full_name_label', 'Full Name') }}
+                            <span class="text-red-500">*</span>
                         </span>
 
                         <input
@@ -123,7 +134,7 @@
                             @input="errors.fullName = ''"
                             maxlength="255"
                             autocomplete="name"
-                            placeholder="Enter your name"
+                            placeholder="{{ $submitContent('full_name_placeholder', 'Enter your name') }}"
                             :class="errors.fullName ? 'border-red-500' : 'border-[#BFBFBF]'"
                             class="mt-[9px] h-[40px] w-full rounded-[3px] border px-[13px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                         >
@@ -138,7 +149,8 @@
                     {{-- Email --}}
                     <label class="block">
                         <span class="text-[13px] font-normal text-[#242424]">
-                            Email <span class="text-red-500">*</span>
+                            {{ $submitContent('email_label', 'Email') }}
+                            <span class="text-red-500">*</span>
                         </span>
 
                         <input
@@ -148,7 +160,7 @@
                             @input="errors.email = ''"
                             maxlength="255"
                             autocomplete="email"
-                            placeholder="Enter your email"
+                            placeholder="{{ $submitContent('email_placeholder', 'Enter your email') }}"
                             :class="errors.email ? 'border-red-500' : 'border-[#BFBFBF]'"
                             class="mt-[9px] h-[40px] w-full rounded-[3px] border px-[13px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                         >
@@ -163,7 +175,8 @@
                     {{-- Phone --}}
                     <label class="block">
                         <span class="text-[13px] font-normal text-[#242424]">
-                            Phone Number <span class="text-red-500">*</span>
+                            {{ $submitContent('phone_label', 'Phone Number') }}
+                            <span class="text-red-500">*</span>
                         </span>
 
                         <input
@@ -173,7 +186,7 @@
                             @input="errors.phone = ''"
                             maxlength="30"
                             autocomplete="tel"
-                            placeholder="Enter your phone number"
+                            placeholder="{{ $submitContent('phone_placeholder', 'Enter your phone number') }}"
                             :class="errors.phone ? 'border-red-500' : 'border-[#BFBFBF]'"
                             class="mt-[9px] h-[40px] w-full rounded-[3px] border px-[13px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                         >
@@ -188,9 +201,9 @@
                     {{-- Company --}}
                     <label class="block">
                         <span class="text-[13px] font-normal text-[#242424]">
-                            Company
+                            {{ $submitContent('company_label', 'Company') }}
                             <span class="text-[11px] text-[#888888]">
-                                (optional)
+                                {{ $submitContent('optional_label', '(optional)') }}
                             </span>
                         </span>
 
@@ -199,7 +212,7 @@
                             name="company"
                             x-model="company"
                             maxlength="255"
-                            placeholder="Enter company name"
+                            placeholder="{{ $submitContent('company_placeholder', 'Enter company name') }}"
                             class="mt-[9px] h-[40px] w-full rounded-[3px] border border-[#BFBFBF] px-[13px] text-[12px] text-[#242424] outline-none transition placeholder:text-[#8D8D8D] focus:border-[#4D7FCF]"
                         >
                     </label>
@@ -208,12 +221,12 @@
                 {{-- Notes are already entered in Study Details --}}
                 <div class="mt-[22px] rounded-[5px] bg-[#F7F9FD] px-[14px] py-[12px]">
                     <p class="text-[11px] text-[#666666]">
-                        Additional study notes
+                        {{ $submitContent('notes_heading', 'Additional study notes') }}
                     </p>
 
                     <p
                         class="mt-[5px] whitespace-pre-wrap break-words text-[11px] text-[#333333]"
-                        x-text="notes || 'No additional notes provided.'"
+                        x-text="notes || @js($submitContent('notes_empty_text', 'No additional notes provided.'))"
                     ></p>
 
                     <button
@@ -221,7 +234,7 @@
                         @click="scrollTo('study-details')"
                         class="mt-[8px] text-[11px] text-[#4D7FCF] hover:underline"
                     >
-                        Edit notes
+                        {{ $submitContent('edit_notes_text', 'Edit notes') }}
                     </button>
                 </div>
 
@@ -233,13 +246,16 @@
                         :disabled="submitting"
                         class="h-[42px] w-[240px] rounded-[3px] bg-[#4D7FCF] text-[13px] font-medium text-white transition hover:bg-[#416FB4] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        <span x-text="submitting ? 'Submitting...' : 'Submit Request'"></span>
+                        <span
+                            x-text="submitting
+                                ? @js($submitContent('submitting_text', 'Submitting...'))
+                                : @js($submitContent('submit_button_text', 'Submit Request'))"
+                        ></span>
                     </button>
 
                     @guest
                         <p class="mt-[12px] max-w-[300px] text-center text-[11px] leading-[1.5] text-[#777777]">
-                            You’ll be asked to log in or register.
-                            Your study details will be saved temporarily.
+                            {{ $submitContent('guest_notice', 'You’ll be asked to log in or register. Your study details will be saved temporarily.') }}
                         </p>
                     @endguest
 
@@ -251,7 +267,7 @@
 
                 <div class="flex items-center justify-between">
                     <h3 class="text-[12px] font-medium text-[#242424]">
-                        Study Summary
+                        {{ $submitContent('summary_heading', 'Study Summary') }}
                     </h3>
 
                     <button
@@ -259,43 +275,72 @@
                         @click="scrollTo('start-study')"
                         class="text-[11px] text-[#242424] underline transition hover:text-[#4D7FCF]"
                     >
-                        Edit
+                        {{ $submitContent('summary_edit_text', 'Edit') }}
                     </button>
                 </div>
 
                 <div class="mt-[20px] space-y-[18px] text-[11px]">
 
                     <div>
-                        <p class="text-[#555555]">Goal</p>
-                        <p class="mt-[2px] text-[#333333]" x-text="goal || 'Not selected'"></p>
-                    </div>
-
-                    <div>
-                        <p class="text-[#555555]">Method</p>
+                        <p class="text-[#555555]">
+                            {{ $submitContent('summary_goal_label', 'Goal') }}
+                        </p>
                         <p
-                            class="mt-[2px] leading-[1.45] text-[#333333]"
-                            x-text="methods.length ? methods.join(', ') : 'Not selected'"
+                            class="mt-[2px] text-[#333333]"
+                            x-text="goal || @js($submitContent('not_selected_text', 'Not selected'))"
                         ></p>
                     </div>
 
                     <div>
-                        <p class="text-[#555555]">Target Market</p>
-                        <p class="mt-[2px] text-[#333333]" x-text="country || 'Not selected'"></p>
+                        <p class="text-[#555555]">
+                            {{ $submitContent('summary_method_label', 'Method') }}
+                        </p>
+                        <p
+                            class="mt-[2px] leading-[1.45] text-[#333333]"
+                            x-text="methods.length
+                                ? methods.join(', ')
+                                : @js($submitContent('not_selected_text', 'Not selected'))"
+                        ></p>
                     </div>
 
                     <div>
-                        <p class="text-[#555555]">Audience</p>
-                        <p class="mt-[2px] text-[#333333]" x-text="audience || 'Not provided'"></p>
+                        <p class="text-[#555555]">
+                            {{ $submitContent('summary_country_label', 'Target Market') }}
+                        </p>
+                        <p
+                            class="mt-[2px] text-[#333333]"
+                            x-text="country || @js($submitContent('not_selected_text', 'Not selected'))"
+                        ></p>
                     </div>
 
                     <div>
-                        <p class="text-[#555555]">Sample Size</p>
-                        <p class="mt-[2px] text-[#333333]" x-text="sampleSize || '400'"></p>
+                        <p class="text-[#555555]">
+                            {{ $submitContent('summary_audience_label', 'Audience') }}
+                        </p>
+                        <p
+                            class="mt-[2px] text-[#333333]"
+                            x-text="audience || @js($submitContent('not_provided_text', 'Not provided'))"
+                        ></p>
                     </div>
 
                     <div>
-                        <p class="text-[#555555]">Timeline</p>
-                        <p class="mt-[2px] text-[#333333]" x-text="timeline || 'Not selected'"></p>
+                        <p class="text-[#555555]">
+                            {{ $submitContent('summary_sample_size_label', 'Sample Size') }}
+                        </p>
+                        <p
+                            class="mt-[2px] text-[#333333]"
+                            x-text="sampleSize || '400'"
+                        ></p>
+                    </div>
+
+                    <div>
+                        <p class="text-[#555555]">
+                            {{ $submitContent('summary_timeline_label', 'Timeline') }}
+                        </p>
+                        <p
+                            class="mt-[2px] text-[#333333]"
+                            x-text="timeline || @js($submitContent('not_selected_text', 'Not selected'))"
+                        ></p>
                     </div>
 
                 </div>
