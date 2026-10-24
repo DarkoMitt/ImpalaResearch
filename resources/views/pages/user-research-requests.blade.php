@@ -178,7 +178,7 @@
                 <div class="relative">
                     <div class="flex items-start justify-between gap-2">
                         <p class="text-[10px] font-bold uppercase leading-[1.5] tracking-[0.03em] text-[#7184A5]">
-                            In Review
+                            Review
                         </p>
 
                         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-[11px] bg-[#FFF0D7] text-[#D79727]">
@@ -411,8 +411,8 @@
 
                                 $statusLabel = match ($status) {
                                     'submitted' => 'Submitted',
-                                    'in_progress', 'in_field' => 'In Field',
-                                    'review', 'under_review' => 'In Review',
+                                    'in_progress', 'in_field' => 'In Progress',
+                                    'review', 'under_review' => 'Review',
                                     'completed' => 'Completed',
                                     'rejected' => 'Rejected',
                                     default => ucwords(str_replace('_', ' ', $status)),

@@ -57,50 +57,20 @@ class AdminResearchRequestController extends Controller
         |--------------------------------------------------------------------------
         | All Research Requests
         |--------------------------------------------------------------------------
-        |
-        | Admin can see requests from every user.
-        |
         */
 
-        $query = ResearchRequest::query()
-            ->with('user');
+        $query = ResearchRequest::query()->with('user');
 
         /*
         |--------------------------------------------------------------------------
         | Search
         |--------------------------------------------------------------------------
-        |
-        | Supported:
-        |
-        | REQ-K7M4P2  => Globally unique public request ID
-        | K7M4P2      => Public request ID without prefix
-        |
-        | Study #001  => Personal study number across all users
-        | Study 001   => Personal study number across all users
-        | #001        => Personal study number across all users
-        | 001         => Personal study number across all users
-        |
-        | Also searches:
-        | - Research goal
-        | - Submitted full name
-        | - Submitted email
-        | - Account name
-        | - Account email
-        |
-        | Study numbers are not globally unique.
-        | Public request IDs are globally unique.
-        |
         */
 
         if ($search !== '') {
             $query->where(function ($query) use ($search) {
 
-                /*
-                |--------------------------------------------------------------------------
-                | Search by Research Goal and Contact Information
-                |--------------------------------------------------------------------------
-                */
-
+                // Search by research goal and contact information.
                 $query
                     ->where('goal', 'like', "%{$search}%")
                     ->orWhere('full_name', 'like', "%{$search}%")
@@ -111,44 +81,27 @@ class AdminResearchRequestController extends Controller
                             ->orWhere('email', 'like', "%{$search}%");
                     });
 
-                /*
-                |--------------------------------------------------------------------------
-                | Search by Public Request ID
-                |--------------------------------------------------------------------------
-                */
-
+                // Search by globally unique public request ID.
                 $normalizedPublicId = strtoupper($search);
 
                 if (preg_match('/^[A-Z0-9]{6}$/', $normalizedPublicId)) {
                     $normalizedPublicId = 'REQ-' . $normalizedPublicId;
                 }
 
-                if (preg_match(
-                    '/^REQ-[A-Z0-9]{6}$/',
-                    $normalizedPublicId
-                )) {
+                if (preg_match('/^REQ-[A-Z0-9]{6}$/', $normalizedPublicId)) {
                     $query->orWhere(
                         'public_request_id',
                         $normalizedPublicId
                     );
                 }
 
-                /*
-                |--------------------------------------------------------------------------
-                | Search by Personal Study Number
-                |--------------------------------------------------------------------------
-                |
-                | Multiple users may have Study #001.
-                | Admin search intentionally returns all matching studies.
-                |
-                */
-
+                // Search by personal study number.
+                // Multiple users can have Study #001.
                 if (preg_match(
                     '/^(?:study\s*)?#?0*([0-9]+)$/i',
                     $search,
                     $matches
                 )) {
-
                     $studyNumber = (int) $matches[1];
 
                     if (
@@ -210,6 +163,12 @@ class AdminResearchRequestController extends Controller
                 'status',
                 'completed'
             )->count(),
+
+            // NEW: Rejected studies statistics.
+            'rejectedCount' => ResearchRequest::where(
+                'status',
+                'rejected'
+            )->count(),
         ]);
     }
 
@@ -244,6 +203,9 @@ class AdminResearchRequestController extends Controller
                 Rule::in(self::STATUSES),
             ],
             'rejection_reason' => [
+                Rule::requiredIf(
+                    $request->input('status') === 'rejected'
+                ),
                 'nullable',
                 'string',
                 'max:2000',
@@ -272,10 +234,6 @@ class AdminResearchRequestController extends Controller
         |--------------------------------------------------------------------------
         | Transactional Status Update
         |--------------------------------------------------------------------------
-        |
-        | Existing status transition and respondent refund logic
-        | is preserved.
-        |
         */
 
         DB::transaction(function () use (

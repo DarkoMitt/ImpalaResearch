@@ -13,8 +13,8 @@
 
     $statusLabel = match ($status) {
         'submitted' => 'Submitted',
-        'in_progress', 'in_field' => 'In Field',
-        'review', 'under_review' => 'In Review',
+        'in_progress', 'in_field' => 'In Progress',
+        'review', 'under_review' => 'Review',
         'completed' => 'Completed',
         'rejected' => 'Rejected',
         default => ucwords(str_replace('_', ' ', $status)),

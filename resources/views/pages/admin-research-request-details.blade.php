@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -15,8 +14,7 @@
         'rejected' => 'Rejected',
     ];
 
-    $statusLabel = $statusLabels[$status]
-        ?? ucfirst(str_replace('_', ' ', $status));
+    $statusLabel = $statusLabels[$status] ?? ucfirst(str_replace('_', ' ', $status));
 
     $statusClasses = [
         'submitted' => 'bg-[#E8F1FF] text-[#3478FF]',
@@ -56,14 +54,28 @@
         ?? 'Unknown User';
 
     $requesterEmail = $researchRequest->user?->email
-        ?? $researchRequest->email
-        ?? null;
+        ?? $researchRequest->email;
 
     $initials = collect(preg_split('/\s+/', trim($requesterName)))
         ->filter()
         ->take(2)
         ->map(fn ($part) => mb_strtoupper(mb_substr($part, 0, 1)))
         ->implode('');
+
+    $studyFields = [
+        'Research Goal' => $researchRequest->goal,
+        'Target Market' => $researchRequest->country,
+        'Target Audience' => $researchRequest->audience,
+        'Sample Size' => number_format((int) $researchRequest->sample_size) . ' respondents',
+        'Timeline' => $researchRequest->timeline,
+        'Current Status' => $statusLabel,
+    ];
+
+    $contactFields = [
+        'Full Name' => $researchRequest->full_name ?: $requesterName,
+        'Phone Number' => $researchRequest->phone,
+        'Company / Organization' => $researchRequest->company,
+    ];
 @endphp
 
 <div class="flex min-h-screen w-full bg-[#F5F8FF]">
@@ -94,7 +106,7 @@
             <div class="min-w-0 flex-1">
 
                 <div class="mb-3 flex flex-wrap items-center gap-3">
-                    <span class="inline-flex items-center rounded-full border border-[#D4E3FF] bg-white px-3 py-1.5 font-mono text-[10px] font-semibold text-[#5276AD]">
+                    <span class="rounded-full border border-[#D4E3FF] bg-white px-3 py-1.5 font-mono text-[10px] font-semibold text-[#5276AD]">
                         Study {{ $studyNumber }}
                     </span>
 
@@ -112,12 +124,8 @@
                     Review study information, requester details and workflow status.
                 </p>
 
-                <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-[#8A9AB3]">
-                    <span class="font-mono">
-                        {{ $publicRequestCode }}
-                    </span>
-
-                    <span class="hidden h-1 w-1 rounded-full bg-[#B3C1D6] sm:block"></span>
+                <div class="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-[#8A9AB3]">
+                    <span class="font-mono">{{ $publicRequestCode }}</span>
 
                     <span>
                         Submitted {{ $researchRequest->created_at?->format('M d, Y \a\t H:i') ?? '—' }}
@@ -138,11 +146,7 @@
 
         {{-- Success Message --}}
         @if (session('success'))
-            <div class="mt-6 flex items-start gap-3 rounded-[13px] border border-[#BCEAD2] bg-[#EDFCF4] px-5 py-4 text-[12px] font-medium text-[#15845B]">
-                <svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="9"/>
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12l3 3 5-6"/>
-                </svg>
+            <div class="mt-6 rounded-[13px] border border-[#BCEAD2] bg-[#EDFCF4] px-5 py-4 text-[12px] font-medium text-[#15845B]">
                 {{ session('success') }}
             </div>
         @endif
@@ -163,83 +167,60 @@
         {{-- Overview Cards --}}
         <div class="mt-8 grid gap-4 md:grid-cols-3">
 
-            {{-- Study Number --}}
-            <div class="relative overflow-hidden rounded-[18px] border border-[#C9DEFF] bg-gradient-to-br from-white to-[#EDF5FF] p-5 shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
-                <div class="pointer-events-none absolute -bottom-12 -right-10 h-32 w-32 rounded-full bg-[#DCEBFF]/70"></div>
-
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#E0EDFF] text-[#3478FF]">
+            <div class="rounded-[18px] border border-[#C9DEFF] bg-gradient-to-br from-white to-[#EDF5FF] p-5 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#E0EDFF] text-[#3478FF]">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                             <rect x="4" y="4" width="16" height="16" rx="3"/>
                             <path stroke-linecap="round" d="M8 9h8M8 13h8M8 17h5"/>
                         </svg>
                     </div>
 
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold text-[#7184A5]">
-                            Study Number
-                        </p>
-                        <p class="mt-1 font-mono text-[20px] font-bold text-[#102243]">
-                            {{ $studyNumber }}
-                        </p>
-                        <p class="mt-1 text-[10px] text-[#8A9AB3]">
-                            Personal study reference
-                        </p>
+                    <div>
+                        <p class="text-[11px] font-semibold text-[#7184A5]">Study Number</p>
+                        <p class="mt-1 font-mono text-[20px] font-bold text-[#102243]">{{ $studyNumber }}</p>
+                        <p class="mt-1 text-[10px] text-[#8A9AB3]">Personal study reference</p>
                     </div>
                 </div>
             </div>
 
-            {{-- Respondents --}}
-            <div class="relative overflow-hidden rounded-[18px] border border-[#D9D3FA] bg-gradient-to-br from-white to-[#F2EFFF] p-5 shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
-                <div class="pointer-events-none absolute -bottom-12 -right-10 h-32 w-32 rounded-full bg-[#E8E1FF]/70"></div>
-
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#EAE4FF] text-[#7958E8]">
+            <div class="rounded-[18px] border border-[#D9D3FA] bg-gradient-to-br from-white to-[#F2EFFF] p-5 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#EAE4FF] text-[#7958E8]">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 10a4 4 0 100-8 4 4 0 000 8zM22 20v-2a4 4 0 00-3-3.87M16 2.13a4 4 0 010 7.75"/>
+                            <circle cx="9" cy="8" r="4"/>
+                            <path stroke-linecap="round" d="M2 21v-2a7 7 0 0114 0v2M17 5a4 4 0 010 8M19 16a5 5 0 013 5"/>
                         </svg>
                     </div>
 
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold text-[#7184A5]">
-                            Target Respondents
-                        </p>
+                    <div>
+                        <p class="text-[11px] font-semibold text-[#7184A5]">Target Respondents</p>
                         <p class="mt-1 text-[20px] font-bold text-[#102243]">
                             {{ number_format((int) $researchRequest->sample_size) }}
                         </p>
-                        <p class="mt-1 text-[10px] text-[#8A9AB3]">
-                            Requested sample size
-                        </p>
+                        <p class="mt-1 text-[10px] text-[#8A9AB3]">Requested sample size</p>
                     </div>
                 </div>
             </div>
 
-            {{-- Target Market --}}
-            <div class="relative overflow-hidden rounded-[18px] border border-[#BCEBD8] bg-gradient-to-br from-white to-[#EBFCF5] p-5 shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
-                <div class="pointer-events-none absolute -bottom-12 -right-10 h-32 w-32 rounded-full bg-[#D6F8E7]/70"></div>
-
-                <div class="relative flex items-center gap-4">
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#D8F8E9] text-[#0D9D6D]">
+            <div class="rounded-[18px] border border-[#BCEBD8] bg-gradient-to-br from-white to-[#EBFCF5] p-5 shadow-sm">
+                <div class="flex items-center gap-4">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-[14px] bg-[#D8F8E9] text-[#0D9D6D]">
                         <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                             <circle cx="12" cy="12" r="9"/>
                             <path stroke-linecap="round" d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/>
                         </svg>
                     </div>
 
-                    <div class="min-w-0">
-                        <p class="text-[11px] font-semibold text-[#7184A5]">
-                            Target Market
-                        </p>
+                    <div>
+                        <p class="text-[11px] font-semibold text-[#7184A5]">Target Market</p>
                         <p class="mt-1 break-words text-[17px] font-bold text-[#102243]">
                             {{ $researchRequest->country ?: 'Not specified' }}
                         </p>
-                        <p class="mt-1 text-[10px] text-[#8A9AB3]">
-                            Selected research location
-                        </p>
+                        <p class="mt-1 text-[10px] text-[#8A9AB3]">Selected research location</p>
                     </div>
                 </div>
             </div>
-
         </div>
 
         {{-- Main Layout --}}
@@ -249,7 +230,7 @@
             <div class="min-w-0 space-y-5">
 
                 {{-- Study Information --}}
-                <section class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
+                <section class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-sm">
 
                     <div class="flex items-center gap-3 border-b border-[#EDF1F8] px-6 py-5">
                         <div class="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF2FF] text-[#3478FF]">
@@ -260,9 +241,7 @@
                         </div>
 
                         <div>
-                            <h2 class="text-[14px] font-bold text-[#102243]">
-                                Study Information
-                            </h2>
+                            <h2 class="text-[14px] font-bold text-[#102243]">Study Information</h2>
                             <p class="mt-1 text-[11px] text-[#8A9AB3]">
                                 Research requirements and study configuration
                             </p>
@@ -272,70 +251,26 @@
                     <div class="p-6">
 
                         <div class="grid gap-3 sm:grid-cols-2">
+                            @foreach ($studyFields as $label => $value)
+                                <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
+                                        {{ $label }}
+                                    </p>
 
-                            {{-- Research Goal --}}
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Research Goal
-                                </p>
-                                <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->goal }}
-                                </p>
-                            </div>
-
-                            {{-- Target Market --}}
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Target Market
-                                </p>
-                                <p class="mt-2 text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->country ?: 'Not specified' }}
-                                </p>
-                            </div>
-
-                            {{-- Target Audience --}}
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Target Audience
-                                </p>
-                                <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->audience ?: 'Not specified' }}
-                                </p>
-                            </div>
-
-                            {{-- Sample Size --}}
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Sample Size
-                                </p>
-                                <p class="mt-2 text-[12px] font-semibold text-[#102243]">
-                                    {{ number_format((int) $researchRequest->sample_size) }} respondents
-                                </p>
-                            </div>
-
-                            {{-- Timeline --}}
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Timeline
-                                </p>
-                                <p class="mt-2 text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->timeline ?: 'Not specified' }}
-                                </p>
-                            </div>
-
-                            {{-- Current Status --}}
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Current Status
-                                </p>
-                                <div class="mt-2">
-                                    <span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold {{ $statusClass }}">
-                                        <span class="h-1.5 w-1.5 rounded-full {{ $statusDot }}"></span>
-                                        {{ $statusLabel }}
-                                    </span>
+                                    @if ($label === 'Current Status')
+                                        <div class="mt-2">
+                                            <span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold {{ $statusClass }}">
+                                                <span class="h-1.5 w-1.5 rounded-full {{ $statusDot }}"></span>
+                                                {{ $statusLabel }}
+                                            </span>
+                                        </div>
+                                    @else
+                                        <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
+                                            {{ $value ?: 'Not specified' }}
+                                        </p>
+                                    @endif
                                 </div>
-                            </div>
-
+                            @endforeach
                         </div>
 
                         {{-- Research Methods --}}
@@ -357,9 +292,7 @@
                                         {{ $method }}
                                     </span>
                                 @empty
-                                    <p class="text-[12px] text-[#8A9AB3]">
-                                        No methods selected.
-                                    </p>
+                                    <p class="text-[12px] text-[#8A9AB3]">No methods selected.</p>
                                 @endforelse
                             </div>
                         </div>
@@ -378,11 +311,7 @@
                         {{-- Rejection Reason --}}
                         @if ($status === 'rejected')
                             <div class="mt-6 border-t border-[#EDF1F8] pt-6">
-                                <h3 class="flex items-center gap-2 text-[12px] font-bold text-[#D9475A]">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <circle cx="12" cy="12" r="9"/>
-                                        <path stroke-linecap="round" d="M12 7v6m0 4h.01"/>
-                                    </svg>
+                                <h3 class="text-[12px] font-bold text-[#D9475A]">
                                     Rejection Reason
                                 </h3>
 
@@ -396,7 +325,7 @@
                 </section>
 
                 {{-- Contact Information --}}
-                <section class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
+                <section class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-sm">
 
                     <div class="flex items-center gap-3 border-b border-[#EDF1F8] px-6 py-5">
                         <div class="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EDEAFF] text-[#7557E9]">
@@ -423,7 +352,7 @@
                                 {{ $initials }}
                             </div>
 
-                            <div class="min-w-0">
+                            <div>
                                 <p class="break-words text-[14px] font-bold text-[#102243]">
                                     {{ $requesterName }}
                                 </p>
@@ -435,14 +364,17 @@
 
                         <div class="grid gap-3 sm:grid-cols-2">
 
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Full Name
-                                </p>
-                                <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->full_name ?: $requesterName }}
-                                </p>
-                            </div>
+                            @foreach ($contactFields as $label => $value)
+                                <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
+                                    <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
+                                        {{ $label }}
+                                    </p>
+
+                                    <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
+                                        {{ $value ?: 'Not specified' }}
+                                    </p>
+                                </div>
+                            @endforeach
 
                             <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
                                 <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
@@ -460,29 +392,9 @@
                                 @endif
                             </div>
 
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Phone Number
-                                </p>
-                                <p class="mt-2 text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->phone ?: 'Not provided' }}
-                                </p>
-                            </div>
-
-                            <div class="rounded-[13px] border border-[#EDF1F8] bg-[#F8FAFE] p-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                    Company / Organization
-                                </p>
-                                <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
-                                    {{ $researchRequest->company ?: 'Not specified' }}
-                                </p>
-                            </div>
-
                         </div>
-
                     </div>
                 </section>
-
             </div>
 
             {{-- Right Column --}}
@@ -490,8 +402,38 @@
 
                 {{-- Manage Request --}}
                 <section
-                    x-data="{ rejectOpen: @js($errors->has('rejection_reason')) }"
-                    class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-[0_2px_5px_rgba(30,64,120,0.06)]"
+                    x-data="{
+                        rejectOpen: @js($errors->has('rejection_reason')),
+                        confirmOpen: false,
+                        confirmStatus: '',
+                        confirmTitle: '',
+                        confirmMessage: '',
+
+                        openConfirmation(status) {
+                            const actions = {
+                                in_progress: {
+                                    title: 'Approve Research Study',
+                                    message: 'Are you sure you want to approve this study and move it to In Progress?'
+                                },
+                                review: {
+                                    title: 'Move Study to Review',
+                                    message: 'Are you sure you want to move this study to the Review stage?'
+                                },
+                                completed: {
+                                    title: 'Complete Research Study',
+                                    message: 'Are you sure you want to mark this study as Completed? This action cannot be undone.'
+                                }
+                            };
+
+                            if (!actions[status]) return;
+
+                            this.confirmStatus = status;
+                            this.confirmTitle = actions[status].title;
+                            this.confirmMessage = actions[status].message;
+                            this.confirmOpen = true;
+                        }
+                    }"
+                    class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-sm"
                 >
 
                     <div class="border-b border-[#DCE9FC] bg-gradient-to-r from-[#F0F6FF] to-white px-5 py-5">
@@ -533,13 +475,7 @@
                         </div>
 
                         @if (count($nextActions))
-                            <form
-                                method="POST"
-                                action="{{ route('admin.research-requests.update-status', $researchRequest) }}"
-                                class="mt-5 space-y-3"
-                            >
-                                @csrf
-                                @method('PATCH')
+                            <div class="mt-5 space-y-3">
 
                                 @foreach ($nextActions as $value => $label)
 
@@ -557,9 +493,8 @@
                                         </button>
                                     @else
                                         <button
-                                            type="submit"
-                                            name="status"
-                                            value="{{ $value }}"
+                                            type="button"
+                                            @click="openConfirmation(@js($value))"
                                             class="flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[11px] bg-[#397CF6] px-4 text-[12px] font-bold text-white shadow-[0_3px_8px_rgba(57,124,246,0.2)] transition hover:bg-[#2869E3]"
                                         >
                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -570,28 +505,96 @@
                                     @endif
 
                                 @endforeach
-                            </form>
+
+                            </div>
                         @else
                             <div class="mt-5 rounded-[12px] border border-[#D9EDE4] bg-[#F0FBF5] p-4">
-                                <div class="flex items-start gap-3">
-                                    <svg class="mt-0.5 h-5 w-5 shrink-0 text-[#159866]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                                        <circle cx="12" cy="12" r="9"/>
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12l3 3 5-6"/>
-                                    </svg>
-
-                                    <div>
-                                        <p class="text-[12px] font-bold text-[#176A4C]">
-                                            Final Status Reached
-                                        </p>
-                                        <p class="mt-1 text-[11px] leading-[1.7] text-[#578674]">
-                                            No further status changes are available for this study.
-                                        </p>
-                                    </div>
-                                </div>
+                                <p class="text-[12px] font-bold text-[#176A4C]">
+                                    Final Status Reached
+                                </p>
+                                <p class="mt-1 text-[11px] leading-[1.7] text-[#578674]">
+                                    No further status changes are available for this study.
+                                </p>
                             </div>
                         @endif
-
                     </div>
+
+                    {{-- Confirmation Modal --}}
+                    <template x-teleport="body">
+                        <div
+                            x-show="confirmOpen"
+                            x-cloak
+                            @keydown.escape.window="confirmOpen = false"
+                            role="dialog"
+                            aria-modal="true"
+                            aria-labelledby="confirm-status-title"
+                            class="fixed inset-0 z-[100] flex items-center justify-center bg-[#0B1B39]/60 px-4 py-6 backdrop-blur-[3px]"
+                        >
+                            <div
+                                @click.outside="confirmOpen = false"
+                                class="w-full max-w-[480px] overflow-hidden rounded-[20px] bg-white shadow-[0_25px_70px_rgba(11,27,57,0.25)]"
+                            >
+                                <div class="border-b border-[#DCE9FC] bg-gradient-to-r from-[#F0F6FF] to-white px-7 py-6">
+
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-[14px] bg-[#DCEAFF] text-[#3478FF]">
+                                            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="9"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 12l3 3 5-6"/>
+                                            </svg>
+                                        </div>
+
+                                        <div>
+                                            <h3
+                                                id="confirm-status-title"
+                                                class="text-[17px] font-bold text-[#102243]"
+                                                x-text="confirmTitle"
+                                            ></h3>
+
+                                            <p class="mt-1 text-[11px] text-[#8A9AB3]">
+                                                Confirm this action before proceeding
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <form
+                                    method="POST"
+                                    action="{{ route('admin.research-requests.update-status', $researchRequest) }}"
+                                    class="p-7"
+                                >
+                                    @csrf
+                                    @method('PATCH')
+
+                                    <input type="hidden" name="status" :value="confirmStatus">
+
+                                    <div class="rounded-[12px] border border-[#DCE9FC] bg-[#F5F9FF] p-4">
+                                        <p
+                                            class="text-[12px] leading-[1.8] text-[#516581]"
+                                            x-text="confirmMessage"
+                                        ></p>
+                                    </div>
+
+                                    <div class="mt-6 flex flex-wrap justify-end gap-3">
+                                        <button
+                                            type="button"
+                                            @click="confirmOpen = false"
+                                            class="h-11 cursor-pointer rounded-[11px] border border-[#DCE5F3] bg-white px-5 text-[12px] font-semibold text-[#516581] transition hover:bg-[#F6F9FF]"
+                                        >
+                                            Cancel
+                                        </button>
+
+                                        <button
+                                            type="submit"
+                                            class="h-11 cursor-pointer rounded-[11px] bg-[#397CF6] px-5 text-[12px] font-bold text-white transition hover:bg-[#2869E3]"
+                                        >
+                                            Confirm Action
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </template>
 
                     {{-- Rejection Modal --}}
                     @if ($status === 'submitted')
@@ -623,6 +626,7 @@
                                                 <h3 id="reject-study-title" class="text-[17px] font-bold text-[#102243]">
                                                     Reject Research Study
                                                 </h3>
+
                                                 <p class="mt-1 text-[11px] text-[#8A9AB3]">
                                                     Confirm this action before proceeding
                                                 </p>
@@ -649,12 +653,13 @@
 
                                         <label for="rejection_reason" class="mt-6 block text-[12px] font-bold text-[#102243]">
                                             Reason for rejection
-                                            <span class="font-normal text-[#8A9AB3]">(Optional)</span>
+                                            <span class="font-semibold text-[#D9475A]">*</span>
                                         </label>
 
                                         <textarea
                                             id="rejection_reason"
                                             name="rejection_reason"
+                                            required
                                             rows="5"
                                             maxlength="2000"
                                             placeholder="Explain why this study cannot be approved..."
@@ -662,7 +667,7 @@
                                         >{{ old('rejection_reason') }}</textarea>
 
                                         <p class="mt-2 text-[10px] leading-[1.6] text-[#8A9AB3]">
-                                            This reason can be displayed to the user when the study is rejected.
+                                            This reason will be available when viewing the rejected study.
                                         </p>
 
                                         <div class="mt-6 flex flex-wrap justify-end gap-3">
@@ -681,7 +686,6 @@
                                                 Confirm Rejection
                                             </button>
                                         </div>
-
                                     </form>
                                 </div>
                             </div>
@@ -691,7 +695,7 @@
                 </section>
 
                 {{-- Account Information --}}
-                <section class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
+                <section class="overflow-hidden rounded-[19px] border border-[#DFE8F6] bg-white shadow-sm">
 
                     <div class="flex items-center gap-3 border-b border-[#EDF1F8] px-5 py-5">
                         <div class="flex h-11 w-11 items-center justify-center rounded-[13px] bg-[#EAF9F1] text-[#159866]">
@@ -713,44 +717,26 @@
 
                     <div class="space-y-3 p-5">
 
-                        <div class="rounded-[12px] bg-[#F8FAFE] p-4">
-                            <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                Submitted By
-                            </p>
-                            <p class="mt-2 break-words text-[12px] font-semibold text-[#102243]">
-                                {{ $researchRequest->user?->name ?? 'Unknown user' }}
-                            </p>
-                        </div>
+                        @foreach ([
+                            'Submitted By' => $researchRequest->user?->name ?? 'Unknown user',
+                            'User ID' => $researchRequest->user_id ?? '—',
+                            'Study Number' => $studyNumber,
+                            'Public Request ID' => $publicRequestCode,
+                        ] as $label => $value)
 
-                        <div class="rounded-[12px] bg-[#F8FAFE] p-4">
-                            <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                User ID
-                            </p>
-                            <p class="mt-2 font-mono text-[12px] font-semibold text-[#102243]">
-                                {{ $researchRequest->user_id ?? '—' }}
-                            </p>
-                        </div>
+                            <div class="rounded-[12px] bg-[#F8FAFE] p-4">
+                                <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
+                                    {{ $label }}
+                                </p>
 
-                        <div class="rounded-[12px] bg-[#F8FAFE] p-4">
-                            <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                Study Number
-                            </p>
-                            <p class="mt-2 font-mono text-[12px] font-semibold text-[#102243]">
-                                {{ $studyNumber }}
-                            </p>
-                        </div>
+                                <p class="mt-2 break-all text-[12px] font-semibold text-[#102243]">
+                                    {{ $value }}
+                                </p>
+                            </div>
 
-                        <div class="rounded-[12px] bg-[#F8FAFE] p-4">
-                            <p class="text-[10px] font-bold uppercase tracking-[0.04em] text-[#8294B0]">
-                                Public Request ID
-                            </p>
-                            <p class="mt-2 break-all font-mono text-[12px] font-semibold text-[#102243]">
-                                {{ $publicRequestCode }}
-                            </p>
-                        </div>
+                        @endforeach
 
                     </div>
-
                 </section>
 
             </aside>
@@ -761,6 +747,7 @@
             <p class="text-[10px] text-[#91A0B6]">
                 Impala Research · Administration Workspace
             </p>
+
             <p class="text-[10px] text-[#91A0B6]">
                 Research Request Details
             </p>

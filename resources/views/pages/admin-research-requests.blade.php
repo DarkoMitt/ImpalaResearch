@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('content')
@@ -35,6 +34,7 @@
                         <path stroke-linecap="round" d="M8 9h8M8 13h8M8 17h5"/>
                     </svg>
                 </div>
+
                 <div>
                     <p class="text-[10px] font-medium text-[#8A9BB8]">All Studies</p>
                     <p class="text-[13px] font-bold text-[#102243]">
@@ -102,17 +102,27 @@
                     'circle' => 'bg-[#D7F8E9]/70',
                     'icon' => 'completed',
                 ],
+                [
+                    'label' => 'Rejected',
+                    'value' => $rejectedCount,
+                    'description' => 'Rejected research studies',
+                    'border' => 'border-[#F5C8D0]',
+                    'background' => 'bg-gradient-to-br from-white to-[#FFF0F2]',
+                    'iconBackground' => 'bg-[#FFE1E7]',
+                    'color' => 'text-[#D9475A]',
+                    'circle' => 'bg-[#FFE3E8]/70',
+                    'icon' => 'rejected',
+                ],
             ];
         @endphp
 
-        <div class="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
+        <div class="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
             @foreach ($stats as $stat)
                 <div class="relative overflow-hidden rounded-[19px] border {{ $stat['border'] }} {{ $stat['background'] }} p-5 shadow-[0_2px_5px_rgba(30,64,120,0.06)]">
 
                     <div class="pointer-events-none absolute -bottom-12 -right-12 h-36 w-36 rounded-full {{ $stat['circle'] }}"></div>
 
                     <div class="relative flex h-12 w-12 items-center justify-center rounded-[14px] {{ $stat['iconBackground'] }} {{ $stat['color'] }}">
-
                         @switch($stat['icon'])
                             @case('total')
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -146,8 +156,14 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M8 12l3 3 5-6"/>
                                 </svg>
                                 @break
-                        @endswitch
 
+                            @case('rejected')
+                                <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                                    <circle cx="12" cy="12" r="9"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 8l8 8M16 8l-8 8"/>
+                                </svg>
+                                @break
+                        @endswitch
                     </div>
 
                     <div class="relative mt-5">
@@ -179,25 +195,27 @@
                 </div>
 
                 <div>
-                    <h2 class="text-[14px] font-bold text-[#102243]">Find Research Requests</h2>
+                    <h2 class="text-[14px] font-bold text-[#102243]">
+                        Find Research Requests
+                    </h2>
                     <p class="mt-1 text-[11px] text-[#8A9AB3]">
                         Search studies or narrow down results by their current status.
                     </p>
                 </div>
             </div>
 
-            <form method="GET"
-                  action="{{ route('admin.research-requests.index') }}"
-                  class="flex flex-wrap items-end gap-3 px-6 py-5">
-
+            <form
+                method="GET"
+                action="{{ route('admin.research-requests.index') }}"
+                class="flex flex-wrap items-end gap-3 px-6 py-5"
+            >
                 <div class="min-w-[230px] flex-1">
                     <label for="search" class="mb-2 block text-[11px] font-semibold text-[#516581]">
                         Search Requests
                     </label>
 
                     <div class="relative">
-                        <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#91A4BF]"
-                             fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <svg class="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#91A4BF]" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                             <circle cx="10.5" cy="10.5" r="6.5"/>
                             <path stroke-linecap="round" d="M16 16l5 5"/>
                         </svg>
@@ -252,9 +270,7 @@
                     </svg>
                     Reset
                 </a>
-
             </form>
-
         </section>
 
         {{-- Requests Table --}}
@@ -270,7 +286,9 @@
                     </div>
 
                     <div>
-                        <h2 class="text-[14px] font-bold text-[#102243]">All Research Requests</h2>
+                        <h2 class="text-[14px] font-bold text-[#102243]">
+                            All Research Requests
+                        </h2>
                         <p class="mt-1 text-[11px] text-[#8A9AB3]">
                             Review individual studies and open their details.
                         </p>
@@ -298,7 +316,6 @@
                     </thead>
 
                     <tbody class="divide-y divide-[#EDF1F8]">
-
                         @forelse ($requests as $researchRequest)
 
                             @php
@@ -390,16 +407,15 @@
                                         class="inline-flex items-center gap-2 whitespace-nowrap rounded-[10px] border border-[#BED4FF] bg-[#F0F5FF] px-3.5 py-2.5 text-[11px] font-bold text-[#3478FF] transition hover:bg-[#E1EDFF]"
                                     >
                                         View Details
+
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6l6 6-6 6"/>
                                         </svg>
                                     </a>
                                 </td>
-
                             </tr>
 
                         @empty
-
                             <tr>
                                 <td colspan="7" class="px-6 py-16 text-center">
                                     <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EDF4FF] text-[#3478FF]">
@@ -418,17 +434,13 @@
                                     </p>
                                 </td>
                             </tr>
-
                         @endforelse
-
                     </tbody>
-
                 </table>
             </div>
 
             {{-- Pagination --}}
             <div class="flex flex-wrap items-center justify-between gap-4 border-t border-[#EDF1F8] bg-[#F8FAFE] px-6 py-5">
-
                 <p class="text-[11px] font-medium text-[#8A9AB3]">
                     Showing
                     <span class="font-bold text-[#102243]">{{ $requests->firstItem() ?? 0 }}</span>
@@ -440,14 +452,15 @@
                 </p>
 
                 <div class="flex items-center gap-2">
-
                     @if ($requests->onFirstPage())
                         <span class="inline-flex h-10 items-center rounded-[10px] border border-[#E2E8F2] bg-[#F3F5F9] px-4 text-[11px] font-semibold text-[#B0BDCF]">
                             Previous
                         </span>
                     @else
-                        <a href="{{ $requests->previousPageUrl() }}"
-                           class="inline-flex h-10 items-center rounded-[10px] border border-[#DCE5F3] bg-white px-4 text-[11px] font-semibold text-[#516581] transition hover:border-[#3478FF] hover:text-[#3478FF]">
+                        <a
+                            href="{{ $requests->previousPageUrl() }}"
+                            class="inline-flex h-10 items-center rounded-[10px] border border-[#DCE5F3] bg-white px-4 text-[11px] font-semibold text-[#516581] transition hover:border-[#3478FF] hover:text-[#3478FF]"
+                        >
                             Previous
                         </a>
                     @endif
@@ -457,8 +470,10 @@
                     </span>
 
                     @if ($requests->hasMorePages())
-                        <a href="{{ $requests->nextPageUrl() }}"
-                           class="inline-flex h-10 items-center rounded-[10px] border border-[#DCE5F3] bg-white px-4 text-[11px] font-semibold text-[#516581] transition hover:border-[#3478FF] hover:text-[#3478FF]">
+                        <a
+                            href="{{ $requests->nextPageUrl() }}"
+                            class="inline-flex h-10 items-center rounded-[10px] border border-[#DCE5F3] bg-white px-4 text-[11px] font-semibold text-[#516581] transition hover:border-[#3478FF] hover:text-[#3478FF]"
+                        >
                             Next
                         </a>
                     @else
@@ -466,10 +481,8 @@
                             Next
                         </span>
                     @endif
-
                 </div>
             </div>
-
         </section>
 
         {{-- Footer --}}
@@ -477,6 +490,7 @@
             <p class="text-[10px] text-[#91A0B6]">
                 Impala Research · Administration Workspace
             </p>
+
             <p class="text-[10px] text-[#91A0B6]">
                 Research Requests Management
             </p>
@@ -485,4 +499,3 @@
     </main>
 </div>
 @endsection
-r
