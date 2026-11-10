@@ -12,6 +12,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Tests\TestCase;
+use App\Notifications\SubscriptionStatusChanged;
+use Illuminate\Support\Facades\Notification;
 
 class SubscriptionServiceTest extends TestCase
 {
@@ -356,4 +358,148 @@ class SubscriptionServiceTest extends TestCase
 
         $this->travelBack();
     }
+
+
+public function test_first_payment_sends_subscription_activated_notification(): void
+{
+    Notification::fake();
+
+    $user = $this->createUser();
+
+    $plan = $this->createPlan(
+        'monthly', 1, 39000, 0
+    );
+
+    $subscription = $this->activate(
+        $user,
+        $plan,
+        'in_notification_activation',
+        'sub_notification_activation',
+        CarbonImmutable::parse('2026-10-01')
+    );
+
+    Notification::assertSentTo(
+        $user,
+        SubscriptionStatusChanged::class,
+        fn ($notification) =>
+            $notification->event === 'activated'
+            && $notification->subscription->id === $subscription->id
+    );
+
+    Notification::assertSentToTimes(
+        $user,
+        SubscriptionStatusChanged::class,
+        1
+    );
+}
+
+public function test_renewal_sends_subscription_renewed_notification(): void
+{
+    Notification::fake();
+
+    $this->travelTo(
+        CarbonImmutable::parse('2026-01-01 12:00:00')
+    );
+
+    $user = $this->createUser();
+
+    $plan = $this->createPlan(
+        'monthly', 1, 39000, 0
+    );
+
+    $this->activate(
+        $user,
+        $plan,
+        'in_notification_renewal_001',
+        'sub_notification_renewal',
+        CarbonImmutable::parse('2026-01-01')
+    );
+
+    $this->travelTo(
+        CarbonImmutable::parse('2026-02-01 12:00:00')
+    );
+
+    $renewed = $this->activate(
+        $user,
+        $plan,
+        'in_notification_renewal_002',
+        'sub_notification_renewal',
+        CarbonImmutable::parse('2026-02-01')
+    );
+
+    Notification::assertSentTo(
+        $user,
+        SubscriptionStatusChanged::class,
+        fn ($notification) =>
+            $notification->event === 'renewed'
+            && $notification->subscription->id === $renewed->id
+    );
+
+    $events = Notification::sent(
+        $user,
+        SubscriptionStatusChanged::class
+    );
+
+    $this->assertCount(2, $events);
+
+    $this->assertSame(
+        ['activated', 'renewed'],
+        $events->pluck('event')->all()
+    );
+
+    $this->travelBack();
+}
+
+public function test_duplicate_stripe_invoice_does_not_duplicate_subscription_notification(): void
+{
+    Notification::fake();
+
+    $user = $this->createUser();
+
+    $plan = $this->createPlan(
+        'monthly', 1, 39000, 0
+    );
+
+    $start = CarbonImmutable::parse('2026-10-01');
+
+    $this->activate(
+        $user,
+        $plan,
+        'in_notification_duplicate',
+        'sub_notification_duplicate',
+        $start
+    );
+
+    $this->activate(
+        $user,
+        $plan,
+        'in_notification_duplicate',
+        'sub_notification_duplicate',
+        $start
+    );
+
+    Notification::assertSentToTimes(
+        $user,
+        SubscriptionStatusChanged::class,
+        1
+    );
+
+    Notification::assertSentTo(
+        $user,
+        SubscriptionStatusChanged::class,
+        fn ($notification) =>
+            $notification->event === 'activated'
+    );
+
+    $this->assertSame(
+        1,
+        StripePaidInvoice::query()
+            ->where(
+                'stripe_invoice_id',
+                'in_notification_duplicate'
+            )
+            ->count()
+    );
+}
+
 }

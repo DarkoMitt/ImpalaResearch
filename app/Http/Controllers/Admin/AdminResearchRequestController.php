@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Models\User;
 use App\Http\Controllers\Controller;
 use App\Models\ResearchRequest;
 use App\Models\Subscription;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use App\Notifications\ResearchStatusChanged;
+use App\Notifications\RespondentCreditsChanged;
 
 class AdminResearchRequestController extends Controller
 {
@@ -302,10 +305,37 @@ class AdminResearchRequestController extends Controller
                         ]);
                     }
 
-                    $subscription->decrement(
-                        'respondents_used',
-                        $reserved
-                    );
+
+$subscription->decrement(
+    'respondents_used',
+    $reserved
+);
+
+/*
+|--------------------------------------------------------------------------
+| Notify User About Returned Respondent Credits
+|--------------------------------------------------------------------------
+*/
+
+$remaining = max(
+    0,
+    (int) $subscription->respondents_granted
+        - (int) $subscription->respondents_used
+);
+
+$customer = User::query()->findOrFail(
+    $study->user_id
+);
+
+$customer->notify(
+    new RespondentCreditsChanged(
+        $subscription,
+        'refunded',
+        $reserved,
+        $remaining
+    )
+);
+
                 }
             }
 
@@ -325,7 +355,31 @@ class AdminResearchRequestController extends Controller
                 ) ?: null;
             }
 
-            $study->update($updates);
+
+$previousStatus = $study->status;
+
+$study->update($updates);
+
+/*
+|--------------------------------------------------------------------------
+| Notify Study Owner
+|--------------------------------------------------------------------------
+*/
+
+if ($previousStatus !== $nextStatus) {
+    $study->load('user');
+
+    if ($study->user) {
+        $study->user->notify(
+            new ResearchStatusChanged(
+                $study,
+                $previousStatus,
+                $nextStatus
+            )
+        );
+    }
+}
+
         }, 3);
 
         /*

@@ -7,6 +7,11 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Notifications\SubscriptionStatusChanged;
+use Illuminate\Support\Facades\Notification;
+use App\Services\StripeSubscriptionGateway;
+use App\Services\StripeSubscriptionIdentity;
+use Mockery;
 
 class SubscriptionCancellationTest extends TestCase
 {
@@ -180,4 +185,297 @@ class SubscriptionCancellationTest extends TestCase
             ])
             ->assertSessionHas('error');
     }
+
+
+public function test_cancellation_sends_subscription_notification_only_once(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createSubscription($user);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.cancellation-request'), [
+            'subscription_id' => $subscription->id,
+            'type' => 'period_end',
+        ])
+        ->assertSessionHas('success');
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.cancellation-request'), [
+            'subscription_id' => $subscription->id,
+            'type' => 'period_end',
+        ])
+        ->assertSessionHas('success');
+
+    Notification::assertSentTo(
+        $user,
+        SubscriptionStatusChanged::class,
+        fn ($notification) =>
+            $notification->event === 'cancellation_scheduled'
+    );
+
+    Notification::assertSentToTimes(
+        $user,
+        SubscriptionStatusChanged::class,
+        1
+    );
+
+    $this->assertSame(
+        'active',
+        $subscription->fresh()->status
+    );
+}
+
+public function test_resume_sends_subscription_notification_only_once(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createSubscription($user);
+
+    $subscription->update([
+        'cancel_at' => $subscription->ends_at,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.resume'), [
+            'subscription_id' => $subscription->id,
+        ])
+        ->assertSessionHas('success');
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.resume'), [
+            'subscription_id' => $subscription->id,
+        ])
+        ->assertSessionHas('success');
+
+    Notification::assertSentTo(
+        $user,
+        SubscriptionStatusChanged::class,
+        fn ($notification) =>
+            $notification->event === 'resumed'
+    );
+
+    Notification::assertSentToTimes(
+        $user,
+        SubscriptionStatusChanged::class,
+        1
+    );
+
+    $this->assertNull(
+        $subscription->fresh()->cancel_at
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Stripe Cancel / Resume Idempotency Tests
+|--------------------------------------------------------------------------
+*/
+
+private function createStripeCancellationSubscription(
+    User $user
+): Subscription {
+    $subscription = $this->createSubscription($user, false);
+
+    $subscription->update([
+        'stripe_customer_id' => 'cus_cancel_test',
+        'stripe_subscription_id' => 'sub_cancel_test',
+    ]);
+
+    return $subscription->fresh();
+}
+
+private function mockStripeRenewalState(
+    bool $initialCancel,
+    ?bool $updatedCancel,
+    int $expectedUpdates
+): void {
+    $remote = function (bool $cancel): object {
+        return (object) [
+            'id' => 'sub_cancel_test',
+            'customer' => 'cus_cancel_test',
+            'status' => 'active',
+            'cancel_at_period_end' => $cancel,
+            'metadata' => (object) [
+                'user_id' => null,
+                'plan_id' => null,
+            ],
+        ];
+    };
+
+    $gateway = Mockery::mock(StripeSubscriptionGateway::class);
+
+    $gateway->shouldReceive('retrieve')
+        ->times(1)
+        ->with('sub_cancel_test')
+        ->andReturn($remote($initialCancel));
+
+    $gateway->shouldReceive('changeAutoRenewal')
+        ->times($expectedUpdates)
+        ->with('sub_cancel_test', !$initialCancel)
+        ->andReturn(
+            $remote($updatedCancel ?? $initialCancel)
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    // Identity is tested independently in the Stripe security suite.
+    $identity = Mockery::mock(StripeSubscriptionIdentity::class);
+
+    $identity->shouldReceive('assertMatches')
+        ->times(1 + $expectedUpdates);
+
+    $this->app->instance(
+        StripeSubscriptionIdentity::class,
+        $identity
+    );
+}
+
+public function test_stripe_cancel_updates_remote_and_notifies(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createStripeCancellationSubscription($user);
+
+    $this->mockStripeRenewalState(false, true, 1);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.cancellation-request'), [
+            'subscription_id' => $subscription->id,
+            'type' => 'period_end',
+        ])
+        ->assertSessionHas('success');
+
+    $this->assertNotNull($subscription->fresh()->cancel_at);
+
+    Notification::assertSentToTimes(
+        $user,
+        SubscriptionStatusChanged::class,
+        1
+    );
+}
+
+public function test_stripe_cancel_already_scheduled_does_not_update_or_notify(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createStripeCancellationSubscription($user);
+
+    $subscription->update([
+        'cancel_at' => $subscription->ends_at,
+    ]);
+
+    $this->mockStripeRenewalState(true, null, 0);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.cancellation-request'), [
+            'subscription_id' => $subscription->id,
+            'type' => 'period_end',
+        ])
+        ->assertSessionHas('success');
+
+    Notification::assertNothingSent();
+}
+
+public function test_stripe_resume_updates_remote_and_notifies(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createStripeCancellationSubscription($user);
+
+    $subscription->update([
+        'cancel_at' => $subscription->ends_at,
+    ]);
+
+    $this->mockStripeRenewalState(true, false, 1);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.resume'), [
+            'subscription_id' => $subscription->id,
+        ])
+        ->assertSessionHas('success');
+
+    $this->assertNull($subscription->fresh()->cancel_at);
+
+    Notification::assertSentToTimes(
+        $user,
+        SubscriptionStatusChanged::class,
+        1
+    );
+}
+
+public function test_stripe_resume_already_active_does_not_update_or_notify(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createStripeCancellationSubscription($user);
+
+    $this->mockStripeRenewalState(false, null, 0);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.resume'), [
+            'subscription_id' => $subscription->id,
+        ])
+        ->assertSessionHas('success');
+
+    Notification::assertNothingSent();
+}
+
+public function test_stripe_cancel_repairs_local_state_without_duplicate_notification(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createStripeCancellationSubscription($user);
+
+    // Stripe has cancellation scheduled, but local DB does not.
+    $this->mockStripeRenewalState(true, null, 0);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.cancellation-request'), [
+            'subscription_id' => $subscription->id,
+            'type' => 'period_end',
+        ])
+        ->assertSessionHas('success');
+
+    $this->assertNotNull($subscription->fresh()->cancel_at);
+
+    Notification::assertNothingSent();
+}
+
+public function test_stripe_resume_repairs_local_state_without_duplicate_notification(): void
+{
+    Notification::fake();
+
+    $user = User::factory()->create();
+    $subscription = $this->createStripeCancellationSubscription($user);
+
+    // Local DB says cancelled, but Stripe says auto-renewal is enabled.
+    $subscription->update([
+        'cancel_at' => $subscription->ends_at,
+    ]);
+
+    $this->mockStripeRenewalState(false, null, 0);
+
+    $this->actingAs($user)
+        ->post(route('subscriptions.resume'), [
+            'subscription_id' => $subscription->id,
+        ])
+        ->assertSessionHas('success');
+
+    $this->assertNull($subscription->fresh()->cancel_at);
+
+    Notification::assertNothingSent();
+}
+
+
 }

@@ -28,3 +28,7 @@ Artisan::command('inspire', function () {
 Schedule::command('subscriptions:grant-respondents')
     ->hourly()
     ->withoutOverlapping();
+
+Schedule::command('subscriptions:expire')
+    ->hourly()
+    ->withoutOverlapping();

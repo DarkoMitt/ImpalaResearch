@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Throwable;
+use App\Notifications\SubscriptionStatusChanged;
 
 class SubscriptionCancellationController extends Controller
 {
@@ -186,12 +187,21 @@ class SubscriptionCancellationController extends Controller
             }
 
             $locked->update([
-                'cancel_at' => $cancel
-                    ? $locked->ends_at
-                    : null,
-            ]);
+    'cancel_at' => $cancel
+        ? $locked->ends_at
+        : null,
+]);
 
-            return 'updated';
+$locked->load('user');
+
+$locked->user->notify(
+    new SubscriptionStatusChanged(
+        $locked,
+        $cancel ? 'cancellation_scheduled' : 'resumed'
+    )
+);
+
+return 'updated';
         }, 3);
 
         return match ($result) {
@@ -258,14 +268,41 @@ class SubscriptionCancellationController extends Controller
                     $remote
                 );
 
-                if (($remote->status ?? null) !== 'active') {
-                    return 'remote_inactive';
-                }
 
-                $remote = $gateway->changeAutoRenewal(
-                    $locked->stripe_subscription_id,
-                    $cancel
-                );
+if (($remote->status ?? null) !== 'active') {
+    return 'remote_inactive';
+}
+
+// Stripe is the source of truth for the current renewal setting.
+// Avoid sending the same change to Stripe twice.
+$remoteCancelAtPeriodEnd =
+    (bool) ($remote->cancel_at_period_end ?? false);
+
+if ($remoteCancelAtPeriodEnd === $cancel) {
+    $expectedCancelAt = $cancel
+        ? $locked->ends_at
+        : null;
+
+    // Synchronize local state without sending a duplicate notification.
+    if (
+        ($locked->cancel_at?->toDateTimeString())
+        !== ($expectedCancelAt?->toDateTimeString())
+    ) {
+        $locked->update([
+            'cancel_at' => $expectedCancelAt,
+        ]);
+    }
+
+    return $cancel
+        ? 'already_cancelled'
+        : 'already_active';
+}
+
+$remote = $gateway->changeAutoRenewal(
+    $locked->stripe_subscription_id,
+    $cancel
+);
+
 
                 $identity->assertMatches(
                     $locked,
@@ -281,13 +318,22 @@ class SubscriptionCancellationController extends Controller
                 }
 
                 // Never modify paid dates or respondent balances.
-                $locked->update([
-                    'cancel_at' => $cancel
-                        ? $locked->ends_at
-                        : null,
-                ]);
+$locked->update([
+    'cancel_at' => $cancel
+        ? $locked->ends_at
+        : null,
+]);
 
-                return 'updated';
+$locked->load('user');
+
+$locked->user->notify(
+    new SubscriptionStatusChanged(
+        $locked,
+        $cancel ? 'cancellation_scheduled' : 'resumed'
+    )
+);
+
+return 'updated';
             }, 1);
 
             return match ($result) {
@@ -300,6 +346,14 @@ class SubscriptionCancellationController extends Controller
                 'remote_inactive' => back()->with(
                     'error',
                     'This subscription is not active in Stripe.'
+                ),
+                'already_cancelled' => back()->with(
+                    'success',
+                    'Cancellation is already scheduled.'
+                ),
+                'already_active' => back()->with(
+                    'success',
+                    'Automatic renewal is already enabled.'
                 ),
                 'not_confirmed' => back()->with(
                     'error',

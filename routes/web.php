@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AdminUserController;
 use App\Http\Controllers\Admin\AdminWebsiteCmsController;
 use App\Http\Controllers\AdminContactRequestController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PricingController;
 use App\Http\Controllers\ProfileController;
@@ -100,6 +101,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
         '/my-studies/{researchRequest}',
         [UserResearchRequestController::class, 'show']
     )->name('my-studies.show');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get(
+        '/notifications',
+        [NotificationController::class, 'index']
+    )->name('notifications.index');
+
+    Route::get(
+        '/notifications/recent',
+        [NotificationController::class, 'recent']
+    )->name('notifications.recent');
+
+    Route::patch(
+        '/notifications/read-all',
+        [NotificationController::class, 'markAllAsRead']
+    )->name('notifications.read-all');
+
+    Route::patch(
+        '/notifications/{notification}/read',
+        [NotificationController::class, 'markAsRead']
+    )->name('notifications.read');
 
     /*
     |--------------------------------------------------------------------------

@@ -9,6 +9,8 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
+use App\Notifications\NewResearchRequestSubmitted;
+use App\Notifications\RespondentCreditsChanged;
 
 class RespondentAllocationService
 {
@@ -17,13 +19,34 @@ class RespondentAllocationService
         // Public IDs are random. In the extremely unlikely event of
         // a collision, retry the entire transaction with a new ID.
         for ($attempt = 0; $attempt < 5; $attempt++) {
-            try {
-                return $this->createStudy($user, $data);
-            } catch (QueryException $exception) {
-                if (!$this->isPublicIdCollision($exception)) {
-                    throw $exception;
-                }
-            }
+
+try {
+    $study = $this->createStudy($user, $data);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notify Administrators
+    |--------------------------------------------------------------------------
+    */
+
+    $administrators = User::query()
+        ->where('role', 'admin')
+        ->get();
+
+    foreach ($administrators as $administrator) {
+        $administrator->notify(
+            new NewResearchRequestSubmitted($study)
+        );
+    }
+
+    return $study;
+
+} catch (QueryException $exception) {
+    if (!$this->isPublicIdCollision($exception)) {
+        throw $exception;
+    }
+}
+
         }
 
         throw new RuntimeException(
@@ -185,12 +208,56 @@ class RespondentAllocationService
             |
             */
 
-            $subscription->increment(
-                'respondents_used',
-                $requested
-            );
 
-            return $study;
+$previousRemaining = $remaining;
+
+$subscription->increment(
+    'respondents_used',
+    $requested
+);
+
+$newRemaining = max(
+    0,
+    (int) $subscription->respondents_granted
+        - (int) $subscription->respondents_used
+);
+
+$lowCreditsThreshold = (int) floor(
+    (int) $subscription->respondents_granted * 0.20
+);
+
+/*
+|--------------------------------------------------------------------------
+| Respondent Credits Warnings
+|--------------------------------------------------------------------------
+*/
+
+if ($previousRemaining > 0 && $newRemaining === 0) {
+    $user->notify(
+        new RespondentCreditsChanged(
+            $subscription,
+            'exhausted',
+            0,
+            0
+        )
+    );
+} elseif (
+    $previousRemaining > $lowCreditsThreshold
+    && $newRemaining <= $lowCreditsThreshold
+    && $newRemaining > 0
+) {
+    $user->notify(
+        new RespondentCreditsChanged(
+            $subscription,
+            'low',
+            0,
+            $newRemaining
+        )
+    );
+}
+
+return $study;
+
 
         }, 3);
     }

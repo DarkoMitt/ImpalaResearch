@@ -153,15 +153,24 @@
                 </p>
             </div>
 
-            <a
-                href="{{ route('home') }}#start-study"
-                class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[11px] bg-[#397CF6] px-5 text-[12px] font-bold text-white shadow-[0_4px_12px_rgba(57,124,246,0.22)] transition hover:bg-[#2869E3]"
-            >
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
-                </svg>
-                Create New Study
-            </a>
+
+{{-- Header Actions: Notifications + Create Study --}}
+<div class="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:flex-nowrap">
+
+    <x-notification-bell />
+
+    <a
+        href="{{ route('home') }}#start-study"
+        class="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-[11px] bg-[#397CF6] px-5 text-[12px] font-bold text-white shadow-[0_4px_12px_rgba(57,124,246,0.22)] transition hover:bg-[#2869E3]"
+    >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" d="M12 5v14M5 12h14"/>
+        </svg>
+        Create New Study
+    </a>
+
+</div>
+
 
         </div>
 

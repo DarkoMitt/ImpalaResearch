@@ -9,6 +9,8 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Notifications\RespondentCreditsChanged;
+use App\Notifications\SubscriptionStatusChanged;
 
 class SubscriptionService
 {
@@ -102,6 +104,7 @@ class SubscriptionService
                 )
                 ->lockForUpdate()
                 ->first();
+                $isRenewal = $subscription !== null;
 
             if (
                 $subscription &&
@@ -212,7 +215,29 @@ class SubscriptionService
                 'period_end' => $periodEnd,
             ]);
 
-            return $subscription->refresh();
+            $subscription->refresh();
+
+$creditsAdded = (int) $plan->initial_respondents;
+
+if ($creditsAdded > 0) {
+    $user->notify(
+        new RespondentCreditsChanged(
+            $subscription,
+            'added',
+            $creditsAdded,
+            $subscription->remaining_respondents
+        )
+    );
+}
+
+$user->notify(
+    new SubscriptionStatusChanged(
+        $subscription,
+        $isRenewal ? 'renewed' : 'activated'
+    )
+);
+
+return $subscription;
         }, 3);
     }
 
@@ -299,9 +324,37 @@ class SubscriptionService
                     )
                     : null;
 
-            $locked->save();
 
-            return $newlyGranted;
+$locked->save();
+
+/*
+|--------------------------------------------------------------------------
+| Notify User About Monthly Respondent Credits
+|--------------------------------------------------------------------------
+*/
+
+if ($newlyGranted > 0) {
+    $creditsAdded = $newlyGranted
+        * (int) $plan->monthly_respondents;
+
+    if ($creditsAdded > 0) {
+        $user = User::query()->findOrFail(
+            $locked->user_id
+        );
+
+        $user->notify(
+            new RespondentCreditsChanged(
+                $locked,
+                'added',
+                $creditsAdded,
+                $locked->remaining_respondents
+            )
+        );
+    }
+}
+
+return $newlyGranted;
+
         }, 3);
     }
 }

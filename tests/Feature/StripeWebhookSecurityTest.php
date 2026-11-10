@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Route;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
+use Illuminate\Support\Facades\DB;
+use Carbon\CarbonImmutable;
 
 class StripeWebhookSecurityTest extends TestCase
 {
@@ -195,16 +197,53 @@ class StripeWebhookSecurityTest extends TestCase
         ]);
     }
 
-    public function test_payment_failed_does_not_grant_access(): void
-    {
-        $this->sendWebhook(
-            'evt_payment_failed',
-            'invoice.payment_failed',
-            'in_test_failed'
-        )->assertOk();
 
-        $this->assertDatabaseCount('subscriptions', 0);
-    }
+public function test_payment_failed_does_not_grant_access(): void
+{
+    $invoice = (object) [
+        'id' => 'in_test_failed',
+        'status' => 'open',
+        'paid' => false,
+        'customer' => 'cus_unknown_test',
+        'parent' => (object) [
+            'subscription_details' => (object) [
+                'subscription' => 'sub_unknown_test',
+            ],
+        ],
+    ];
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with('in_test_failed')
+        ->andReturn($invoice);
+
+    $gateway->shouldNotReceive('retrieve');
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_payment_failed',
+        'invoice.payment_failed',
+        'in_test_failed'
+    )->assertOk();
+
+    $this->assertDatabaseCount('subscriptions', 0);
+
+    $this->assertDatabaseCount('notifications', 0);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_payment_failed',
+        'status' => 'processed',
+    ]);
+}
+
 
     public function test_duplicate_event_is_processed_once(): void
     {
@@ -321,4 +360,870 @@ class StripeWebhookSecurityTest extends TestCase
             'status' => 'processed',
         ]);
     }
+
+
+public function test_payment_failed_notifies_subscription_owner(): void
+{
+    $subscription = $this->createSubscription();
+
+    $invoice = (object) [
+        'id' => 'in_failed_owner',
+        'status' => 'open',
+        'paid' => false,
+        'customer' => $subscription->stripe_customer_id,
+        'parent' => (object) [
+            'subscription_details' => (object) [
+                'subscription' =>
+                    $subscription->stripe_subscription_id,
+            ],
+        ],
+    ];
+
+    $remote = (object) [
+        'id' => $subscription->stripe_subscription_id,
+        'status' => 'past_due',
+        'customer' => $subscription->stripe_customer_id,
+        'metadata' => (object) [
+            'user_id' => (string) $subscription->user_id,
+            'plan_id' =>
+                (string) $subscription->subscription_plan_id,
+        ],
+    ];
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with('in_failed_owner')
+        ->andReturn($invoice);
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn($remote);
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_failed_owner',
+        'invoice.payment_failed',
+        'in_failed_owner'
+    )->assertOk();
+
+    $this->assertDatabaseHas('notifications', [
+        'notifiable_type' => User::class,
+        'notifiable_id' => $subscription->user_id,
+        'type' =>
+            \App\Notifications\SubscriptionStatusChanged::class,
+    ]);
+
+    $subscription->refresh();
+
+    $this->assertSame('active', $subscription->status);
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+}
+
+public function test_payment_failed_rejects_wrong_invoice_customer(): void
+{
+    $subscription = $this->createSubscription();
+
+    $invoice = (object) [
+        'id' => 'in_wrong_customer',
+        'status' => 'open',
+        'paid' => false,
+        'customer' => 'cus_someone_else',
+        'parent' => (object) [
+            'subscription_details' => (object) [
+                'subscription' =>
+                    $subscription->stripe_subscription_id,
+            ],
+        ],
+    ];
+
+    $remote = (object) [
+        'id' => $subscription->stripe_subscription_id,
+        'status' => 'past_due',
+        'customer' => $subscription->stripe_customer_id,
+        'metadata' => (object) [
+            'user_id' => (string) $subscription->user_id,
+            'plan_id' =>
+                (string) $subscription->subscription_plan_id,
+        ],
+    ];
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with('in_wrong_customer')
+        ->andReturn($invoice);
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn($remote);
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_wrong_customer',
+        'invoice.payment_failed',
+        'in_wrong_customer'
+    )->assertStatus(500);
+
+    $this->assertDatabaseCount('notifications', 0);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_wrong_customer',
+        'status' => 'pending_processing',
+    ]);
+
+    $subscription->refresh();
+
+    $this->assertSame('active', $subscription->status);
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+}
+
+public function test_payment_failed_does_not_notify_for_paid_invoice(): void
+{
+    $subscription = $this->createSubscription();
+
+    $invoice = (object) [
+        'id' => 'in_already_paid',
+        'status' => 'paid',
+        'paid' => true,
+        'customer' => $subscription->stripe_customer_id,
+        'parent' => (object) [
+            'subscription_details' => (object) [
+                'subscription' =>
+                    $subscription->stripe_subscription_id,
+            ],
+        ],
+    ];
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with('in_already_paid')
+        ->andReturn($invoice);
+
+    $gateway->shouldNotReceive('retrieve');
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_already_paid',
+        'invoice.payment_failed',
+        'in_already_paid'
+    )->assertStatus(500);
+
+    $this->assertDatabaseCount('notifications', 0);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_already_paid',
+        'status' => 'pending_processing',
+    ]);
+
+    $subscription->refresh();
+
+    $this->assertSame('active', $subscription->status);
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+}
+
+public function test_payment_failed_different_events_same_invoice_notify_once(): void
+{
+    $subscription = $this->createSubscription();
+
+    $invoice = (object) [
+        'id' => 'in_duplicate_failure',
+        'status' => 'open',
+        'paid' => false,
+        'customer' => $subscription->stripe_customer_id,
+        'parent' => (object) [
+            'subscription_details' => (object) [
+                'subscription' =>
+                    $subscription->stripe_subscription_id,
+            ],
+        ],
+    ];
+
+    $remote = (object) [
+        'id' => $subscription->stripe_subscription_id,
+        'status' => 'past_due',
+        'customer' => $subscription->stripe_customer_id,
+        'metadata' => (object) [
+            'user_id' => (string) $subscription->user_id,
+            'plan_id' =>
+                (string) $subscription->subscription_plan_id,
+        ],
+    ];
+
+    $gateway = Mockery::mock(StripeSubscriptionGateway::class);
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->twice()
+        ->with('in_duplicate_failure')
+        ->andReturn($invoice);
+
+    $gateway->shouldReceive('retrieve')
+        ->twice()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn($remote);
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_failure_first',
+        'invoice.payment_failed',
+        'in_duplicate_failure'
+    )->assertOk();
+
+    $this->sendWebhook(
+        'evt_failure_second',
+        'invoice.payment_failed',
+        'in_duplicate_failure'
+    )->assertOk();
+
+    $this->assertDatabaseCount('notifications', 1);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_failure_first',
+        'status' => 'processed',
+    ]);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_failure_second',
+        'status' => 'processed',
+    ]);
+
+    $subscription->refresh();
+
+    $this->assertSame('active', $subscription->status);
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Phase 4.9 — Webhook Retry & Recovery
+|--------------------------------------------------------------------------
+*/
+
+private function activeRemoteForRetry(
+    Subscription $subscription
+): object {
+    return (object) [
+        'id' => $subscription->stripe_subscription_id,
+        'status' => 'active',
+        'customer' => $subscription->stripe_customer_id,
+        'cancel_at_period_end' => false,
+        'metadata' => (object) [
+            'user_id' => (string) $subscription->user_id,
+            'plan_id' => (string) $subscription->subscription_plan_id,
+        ],
+    ];
+}
+
+public function test_failed_webhook_can_succeed_on_retry(): void
+{
+    $subscription = $this->createSubscription();
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieve')
+        ->twice()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturnUsing(
+            function () use ($subscription) {
+                static $attempt = 0;
+
+                $attempt++;
+
+                if ($attempt === 1) {
+                    throw new RuntimeException(
+                        'Temporary Stripe outage'
+                    );
+                }
+
+                return $this->activeRemoteForRetry(
+                    $subscription
+                );
+            }
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $eventId = 'evt_retry_then_success';
+
+    $this->sendWebhook(
+        $eventId,
+        'customer.subscription.updated',
+        $subscription->stripe_subscription_id
+    )->assertStatus(500);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => $eventId,
+        'status' => 'pending_processing',
+    ]);
+
+    $this->sendWebhook(
+        $eventId,
+        'customer.subscription.updated',
+        $subscription->stripe_subscription_id
+    )->assertOk();
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => $eventId,
+        'status' => 'processed',
+        'error_message' => null,
+    ]);
+
+    $this->assertSame(
+        'active',
+        $subscription->fresh()->status
+    );
+}
+
+public function test_processed_webhook_replay_skips_stripe_api(): void
+{
+    $subscription = $this->createSubscription();
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->activeRemoteForRetry($subscription)
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    for ($i = 0; $i < 3; $i++) {
+        $this->sendWebhook(
+            'evt_processed_replay',
+            'customer.subscription.updated',
+            $subscription->stripe_subscription_id
+        )->assertOk();
+    }
+
+    $this->assertDatabaseCount('stripe_webhook_events', 1);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_processed_replay',
+        'status' => 'processed',
+    ]);
+}
+
+public function test_failed_webhook_preserves_subscription_credits(): void
+{
+    $subscription = $this->createSubscription();
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->andThrow(
+            new RuntimeException('Stripe unavailable')
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_preserve_credits',
+        'customer.subscription.updated',
+        $subscription->stripe_subscription_id
+    )->assertStatus(500);
+
+    $subscription->refresh();
+
+    $this->assertSame('active', $subscription->status);
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+    $this->assertSame(1, $subscription->months_granted);
+}
+
+public function test_successful_retry_clears_previous_error(): void
+{
+    $subscription = $this->createSubscription();
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->activeRemoteForRetry($subscription)
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    DB::table('stripe_webhook_events')->insert([
+        'stripe_event_id' => 'evt_recover_error',
+        'event_type' => 'customer.subscription.updated',
+        'stripe_object_id' => $subscription->stripe_subscription_id,
+        'status' => 'pending_processing',
+        'payload' => json_encode([
+            'id' => 'evt_recover_error',
+        ]),
+        'error_message' => 'Previous Stripe failure',
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    $this->sendWebhook(
+        'evt_recover_error',
+        'customer.subscription.updated',
+        $subscription->stripe_subscription_id
+    )->assertOk();
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_recover_error',
+        'status' => 'processed',
+        'error_message' => null,
+    ]);
+
+    $this->assertNotNull(
+        DB::table('stripe_webhook_events')
+            ->where('stripe_event_id', 'evt_recover_error')
+            ->value('processed_at')
+    );
+}
+
+public function test_repeated_retry_does_not_modify_entitlements(): void
+{
+    $subscription = $this->createSubscription();
+
+    $originalEnd = $subscription->ends_at->toDateTimeString();
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieve')
+        ->twice()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->activeRemoteForRetry($subscription)
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_entitlements_first',
+        'customer.subscription.updated',
+        $subscription->stripe_subscription_id
+    )->assertOk();
+
+    $this->sendWebhook(
+        'evt_entitlements_second',
+        'customer.subscription.updated',
+        $subscription->stripe_subscription_id
+    )->assertOk();
+
+    $subscription->refresh();
+
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+    $this->assertSame(1, $subscription->months_granted);
+
+    $this->assertSame(
+        $originalEnd,
+        $subscription->ends_at->toDateTimeString()
+    );
+
+    $this->assertDatabaseCount('stripe_paid_invoices', 0);
+}
+
+/*
+|--------------------------------------------------------------------------
+| Phase 4.10 — Payment Recovery Integration Tests
+|--------------------------------------------------------------------------
+*/
+
+
+private function recoveryInvoice(
+    Subscription $subscription,
+    string $invoiceId,
+    bool $paid
+): object {
+    $start = CarbonImmutable::instance(
+        $subscription->ends_at
+    );
+
+    $end = $start->addMonthNoOverflow();
+
+    return (object) [
+        'id' => $invoiceId,
+        'status' => $paid ? 'paid' : 'open',
+        'paid' => $paid,
+        'amount_paid' => $subscription->plan->price_cents,
+        'customer' => $subscription->stripe_customer_id,
+        'parent' => (object) [
+            'subscription_details' => (object) [
+                'subscription' =>
+                    $subscription->stripe_subscription_id,
+            ],
+        ],
+        'lines' => (object) [
+            'data' => [
+                (object) [
+                    'parent' => (object) [
+                        'subscription_item_details' => (object) [
+                            'subscription' =>
+                                $subscription->stripe_subscription_id,
+                        ],
+                    ],
+                    'period' => (object) [
+                        'start' => $start->timestamp,
+                        'end' => $end->timestamp,
+                    ],
+                ],
+            ],
+        ],
+    ];
+}
+
+
+private function recoveryRemote(
+    Subscription $subscription,
+    string $status = 'active'
+): object {
+    return (object) [
+        'id' => $subscription->stripe_subscription_id,
+        'status' => $status,
+        'customer' => $subscription->stripe_customer_id,
+        'cancel_at_period_end' => false,
+        'metadata' => (object) [
+            'user_id' => (string) $subscription->user_id,
+            'plan_id' =>
+                (string) $subscription->subscription_plan_id,
+        ],
+    ];
+}
+
+public function test_failed_payment_then_paid_invoice_recovers_subscription(): void
+{
+    $subscription = $this->createSubscription();
+    $this->travelTo(
+    CarbonImmutable::instance(
+        $subscription->ends_at
+    )->addMinute()
+);
+    $originalEnd = $subscription->ends_at->copy();
+
+    $invoiceId = 'in_recovery_success';
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->twice()
+        ->with($invoiceId)
+        ->andReturn(
+            $this->recoveryInvoice($subscription, $invoiceId, false),
+            $this->recoveryInvoice($subscription, $invoiceId, true)
+        );
+
+    $gateway->shouldReceive('retrieve')
+        ->twice()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->recoveryRemote($subscription, 'past_due'),
+            $this->recoveryRemote($subscription, 'active')
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_recovery_failed',
+        'invoice.payment_failed',
+        $invoiceId
+    )->assertOk();
+
+    $this->assertDatabaseCount('stripe_paid_invoices', 0);
+    $this->assertSame(
+        500,
+        $subscription->fresh()->respondents_granted
+    );
+
+    $this->sendWebhook(
+        'evt_recovery_paid',
+        'invoice.paid',
+        $invoiceId
+    )->assertOk();
+
+    $subscription->refresh();
+
+    $this->assertSame('active', $subscription->status);
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(0, $subscription->respondents_used);
+    $this->assertTrue(
+        $subscription->ends_at->greaterThan($originalEnd)
+    );
+
+    $this->assertDatabaseHas('stripe_paid_invoices', [
+        'stripe_invoice_id' => $invoiceId,
+        'subscription_id' => $subscription->id,
+    ]);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_recovery_paid',
+        'status' => 'processed',
+    ]);
+}
+
+public function test_replayed_recovery_event_does_not_grant_twice(): void
+{
+    $subscription = $this->createSubscription();
+    $this->travelTo(
+    CarbonImmutable::instance(
+        $subscription->ends_at
+    )->addMinute()
+);
+    $invoiceId = 'in_recovery_replay';
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with($invoiceId)
+        ->andReturn(
+            $this->recoveryInvoice($subscription, $invoiceId, true)
+        );
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->recoveryRemote($subscription)
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    for ($i = 0; $i < 3; $i++) {
+        $this->sendWebhook(
+            'evt_recovery_replay',
+            'invoice.paid',
+            $invoiceId
+        )->assertOk();
+    }
+
+    $this->assertDatabaseCount('stripe_paid_invoices', 1);
+
+    $this->assertSame(
+        500,
+        $subscription->fresh()->respondents_granted
+    );
+
+    $this->assertSame(
+        0,
+        $subscription->fresh()->respondents_used
+    );
+}
+
+public function test_different_paid_events_same_invoice_do_not_grant_twice(): void
+{
+    $subscription = $this->createSubscription();
+    $this->travelTo(
+    CarbonImmutable::instance(
+        $subscription->ends_at
+    )->addMinute()
+);
+    $invoiceId = 'in_recovery_duplicate_events';
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->twice()
+        ->with($invoiceId)
+        ->andReturn(
+            $this->recoveryInvoice($subscription, $invoiceId, true)
+        );
+
+    $gateway->shouldReceive('retrieve')
+        ->twice()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->recoveryRemote($subscription)
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_recovery_duplicate_one',
+        'invoice.paid',
+        $invoiceId
+    )->assertOk();
+
+    $this->sendWebhook(
+        'evt_recovery_duplicate_two',
+        'invoice.paid',
+        $invoiceId
+    )->assertOk();
+
+    $this->assertDatabaseCount('stripe_paid_invoices', 1);
+
+    $this->assertSame(
+        500,
+        $subscription->fresh()->respondents_granted
+    );
+
+    $this->assertSame(
+        0,
+        $subscription->fresh()->respondents_used
+    );
+}
+
+public function test_failed_invoice_never_creates_paid_invoice_record(): void
+{
+    $subscription = $this->createSubscription();
+    $invoiceId = 'in_recovery_still_failed';
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with($invoiceId)
+        ->andReturn(
+            $this->recoveryInvoice($subscription, $invoiceId, false)
+        );
+
+    $gateway->shouldReceive('retrieve')
+        ->once()
+        ->with($subscription->stripe_subscription_id)
+        ->andReturn(
+            $this->recoveryRemote($subscription, 'past_due')
+        );
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_recovery_still_failed',
+        'invoice.payment_failed',
+        $invoiceId
+    )->assertOk();
+
+    $this->assertDatabaseCount('stripe_paid_invoices', 0);
+
+    $this->assertDatabaseHas(
+        'stripe_failed_invoice_notifications',
+        ['stripe_invoice_id' => $invoiceId]
+    );
+
+    $subscription->refresh();
+
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+    $this->assertSame('active', $subscription->status);
+}
+
+public function test_paid_event_rejects_invoice_not_confirmed_as_paid(): void
+{
+    $subscription = $this->createSubscription();
+    $invoiceId = 'in_recovery_not_paid';
+
+    $gateway = Mockery::mock(
+        StripeSubscriptionGateway::class
+    );
+
+    $gateway->shouldReceive('retrieveInvoice')
+        ->once()
+        ->with($invoiceId)
+        ->andReturn(
+            $this->recoveryInvoice($subscription, $invoiceId, false)
+        );
+
+    $gateway->shouldNotReceive('retrieve');
+
+    $this->app->instance(
+        StripeSubscriptionGateway::class,
+        $gateway
+    );
+
+    $this->sendWebhook(
+        'evt_recovery_unconfirmed',
+        'invoice.paid',
+        $invoiceId
+    )->assertStatus(500);
+
+    $this->assertDatabaseCount('stripe_paid_invoices', 0);
+
+    $this->assertDatabaseHas('stripe_webhook_events', [
+        'stripe_event_id' => 'evt_recovery_unconfirmed',
+        'status' => 'pending_processing',
+    ]);
+
+    $subscription->refresh();
+
+    $this->assertSame(500, $subscription->respondents_granted);
+    $this->assertSame(125, $subscription->respondents_used);
+}
+
+
 }

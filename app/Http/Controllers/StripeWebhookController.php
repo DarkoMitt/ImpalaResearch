@@ -17,6 +17,7 @@ use Stripe\Exception\SignatureVerificationException;
 use Stripe\Webhook;
 use Throwable;
 use UnexpectedValueException;
+use App\Notifications\SubscriptionStatusChanged;
 
 class StripeWebhookController extends Controller
 {
@@ -125,6 +126,20 @@ class StripeWebhookController extends Controller
                         $objectId,
                         $subscriptions,
                         $gateway
+                    );
+                }
+
+                if ($type === 'invoice.payment_failed') {
+                    if (!is_string($objectId) || $objectId === '') {
+                        throw new RuntimeException(
+                            'Failed invoice object ID is missing.'
+                        );
+                    }
+
+                    $this->processFailedInvoice(
+                        $objectId,
+                        $gateway,
+                        $identity
                     );
                 }
 
@@ -261,6 +276,102 @@ class StripeWebhookController extends Controller
                 : $now,
         ]);
     }
+
+
+
+private function processFailedInvoice(
+    string $invoiceId,
+    StripeSubscriptionGateway $gateway,
+    StripeSubscriptionIdentity $identity
+): void {
+    $invoice = $gateway->retrieveInvoice($invoiceId);
+
+    if (
+        ($invoice->id ?? null) !== $invoiceId ||
+        ($invoice->paid ?? false) === true ||
+        ($invoice->status ?? null) === 'paid'
+    ) {
+        throw new RuntimeException(
+            'Invoice is not confirmed as unpaid.'
+        );
+    }
+
+    $stripeSubscriptionId =
+        $invoice->parent->subscription_details->subscription
+        ?? null;
+
+    if (
+        !is_string($stripeSubscriptionId) ||
+        $stripeSubscriptionId === ''
+    ) {
+        throw new RuntimeException(
+            'Failed invoice has no Stripe subscription reference.'
+        );
+    }
+
+    $subscription = Subscription::query()
+        ->where(
+            'stripe_subscription_id',
+            $stripeSubscriptionId
+        )
+        ->lockForUpdate()
+        ->first();
+
+    if (!$subscription) {
+        // No verified local subscription exists yet.
+        // Do not create an invoice notification record.
+        return;
+    }
+
+    $remote = $gateway->retrieve($stripeSubscriptionId);
+
+    $identity->assertMatches($subscription, $remote);
+
+    $invoiceCustomer = $invoice->customer ?? null;
+
+    if (is_object($invoiceCustomer)) {
+        $invoiceCustomer = $invoiceCustomer->id ?? null;
+    }
+
+    if (
+        !is_string($invoiceCustomer) ||
+        $invoiceCustomer === '' ||
+        $invoiceCustomer !== $subscription->stripe_customer_id
+    ) {
+        throw new RuntimeException(
+            'Failed invoice customer mismatch.'
+        );
+    }
+
+    if ($subscription->status === 'cancelled') {
+        return;
+    }
+
+    // Unique invoice ID provides invoice-level idempotency.
+    // insertOrIgnore avoids a duplicate-key exception.
+    $inserted = DB::table('stripe_failed_invoice_notifications')
+        ->insertOrIgnore([
+            'stripe_invoice_id' => $invoiceId,
+            'subscription_id' => $subscription->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+    if ($inserted !== 1) {
+        // Notification already recorded for this invoice.
+        return;
+    }
+
+    $subscription->load('user');
+
+    $subscription->user->notify(
+        new SubscriptionStatusChanged(
+            $subscription,
+            'payment_failed'
+        )
+    );
+}
+
 
     private function processPaidInvoice(
         string $invoiceId,

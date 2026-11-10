@@ -27,15 +27,27 @@
                 </p>
             </div>
 
-            <div class="inline-flex items-center gap-2 rounded-full border border-[#DCE7F7] bg-white/80 px-4 py-2.5 shadow-sm">
-                <span class="relative flex h-2.5 w-2.5">
-                    <span class="absolute inline-flex h-full w-full rounded-full bg-[#22B573] opacity-25"></span>
-                    <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#22B573]"></span>
-                </span>
-                <span class="text-[11px] font-semibold text-[#50627F]">
-                    Updated on page load
-                </span>
-            </div>
+
+{{-- Admin Header Actions --}}
+<div class="flex flex-wrap items-center gap-3">
+
+    {{-- Notifications --}}
+    <x-notification-bell />
+
+    {{-- Dashboard Status --}}
+    <div class="inline-flex items-center gap-2 rounded-full border border-[#DCE7F7] bg-white/80 px-4 py-2.5 shadow-sm">
+        <span class="relative flex h-2.5 w-2.5">
+            <span class="absolute inline-flex h-full w-full rounded-full bg-[#22B573] opacity-25"></span>
+            <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#22B573]"></span>
+        </span>
+
+        <span class="text-[11px] font-semibold text-[#50627F]">
+            Updated on page load
+        </span>
+    </div>
+
+</div>
+
 
         </div>
 
