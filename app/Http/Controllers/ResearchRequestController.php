@@ -127,6 +127,32 @@ class ResearchRequestController extends Controller
 
         $user = $request->user();
 
+        /*
+        |--------------------------------------------------------------------------
+        | Require verified email
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$user->hasVerifiedEmail()) {
+            $request->session()->put(
+                'pending_research_request',
+                $data
+            );
+
+            return redirect()
+                ->route('verification.notice')
+                ->with(
+                    'status',
+                    'Please verify your email address before submitting your research request.'
+                );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Submit research
+        |--------------------------------------------------------------------------
+        */
+
         $data['email'] = $user->email;
 
         $allocation->submit($user, $data);

@@ -23,6 +23,7 @@ class SubmitPendingResearchRequest
     ): Response {
         $user = $request->user();
 
+        
         if (
             !$user ||
             !$request->hasSession() ||
@@ -30,6 +31,17 @@ class SubmitPendingResearchRequest
         ) {
             return $next($request);
         }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Require verified email before automatic submission
+        |--------------------------------------------------------------------------
+        */
+
+        if (!$user->hasVerifiedEmail()) {
+            return $next($request);
+        }
+
 
         /*
         |--------------------------------------------------------------------------
