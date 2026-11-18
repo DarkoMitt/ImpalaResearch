@@ -1,207 +1,300 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Impala Research
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+**A full-stack research request and subscription management platform built with Laravel 12.**
 
-## About Laravel
+Impala Research is a web application for planning research studies, managing subscriptions and respondent credits, tracking research requests, and coordinating research workflows through dedicated user and administrator dashboards.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
-
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
-
-
-# Impala Research Website Redesign
-
-## Overview
-
-This project is a redesign and frontend implementation of the Impala Research website based on the provided Figma design.
-
-The goal of the project is to modernize the existing website, improve the user experience, and prepare the platform for future backend integrations.
-
----
+The project combines a public-facing research website with an authenticated research management platform.
 
 ## Technology Stack
 
-* Laravel 12
-* Blade Templates
-* Tailwind CSS
-* Alpine.js
+- **Backend:** PHP 8.2+, Laravel 12
+- **Frontend:** Blade, Tailwind CSS 4, Alpine.js, JavaScript
+- **Database:** MySQL or SQLite
+- **Build Tools:** Vite, npm
+- **Authentication:** Laravel Breeze, email verification, password reset
+- **Payments:** Stripe PHP SDK and backend integration
+- **Testing:** PHPUnit / Laravel feature tests
 
----
+## Key Features
 
-## Implemented Features
+### Research Study Builder
 
-### Home Page
+- Select a research goal and target audience.
+- Configure sample sizes and research timelines.
+- Choose from five research methodologies:
+  - Eye Tracking
+  - RTM (Reaction Time Measurement)
+  - Emotion Measurement
+  - Clicks
+  - Surveys
+- Review study details before submission.
+- Save a pending study when authentication is required.
+- Generate unique public research identifiers, such as `REQ-QF3U65`.
 
-* Responsive navigation
-* Hero section
-* Impala Infinity Study Builder
-* Goal selection
-* Research method selection
-* Audience selection
-* Study details form
-* Study review page
-* Request submission flow
-* Dynamic study summary
-* Footer section
+The application manages research requests and workflows; it does not directly perform eye-tracking, reaction-time measurement, or other experimental data collection.
 
-### Contact Page
+### Authentication and Account Management
 
-* Responsive contact form
-* Form validation
-* Country selection dropdown
-* Demo request simulation
+- User registration and login
+- Email verification and resend functionality
+- Password reset
+- Protected user and administrator routes
+- User profile management
+- Verification checks before research submission
 
-### Authentication Pages
+### Subscriptions and Respondent Credits
 
-* Register page
-* Login page
-* Client-side validation
-* Password requirements validation
-* Email validation
+- Monthly, semi-yearly, and yearly subscription plans
+- Subscription validity and respondent balance tracking
+- Respondent credit reservation when studies are submitted
+- Subscription-based study limits
+- Refund of reserved respondent credits when a study is rejected
+- Demo subscriptions without payment
+- Stripe-related backend services for checkout and billing workflows
 
-### Footer
+**Payment status:** The Stripe backend is implemented, but live checkout is not enabled for this portfolio demonstration. Demo subscriptions are used to test the platform without real transactions.
 
-* Navigation links
-* Social links placeholders
-* Email subscription form
-* Subscription validation
+### User Dashboard
 
----
+- Active subscription and expiration date
+- Remaining respondent credits
+- Recent research studies
+- Personal research request history
+- Study details and status tracking
+- Account and subscription information
+- In-app notifications
 
-## Current Scope
+### Administrator Dashboard
 
-This version focuses on frontend implementation and user experience.
+- User management
+- Research request management
+- Study details and filtering
+- Research status transitions:
+  `Submitted → In Progress → Review → Completed`
+- Research rejection with a reason
+- Respondent credit refunds on rejection
+- Contact and demo request management
+- Website content management
 
-The following features are currently implemented as prototypes:
+### Website CMS
 
-* User registration
-* User login
-* Demo scheduling
-* Study request submission
-* Email subscription
+- Edit supported website content
+- Save drafts
+- Preview changes
+- Publish updates
+- Discard unpublished changes
 
-Database integration and backend functionality can be connected in future development phases.
+### Notifications
 
----
+- New research submission notifications for administrators
+- Research status updates for users
+- Respondent credit warnings and refund notifications
+- Read/unread notification management
 
-## Installation
+## Research Workflow
 
-Clone the repository:
+1. A user configures a research study.
+2. The system validates the request and account eligibility.
+3. An active subscription and sufficient respondent credits are required.
+4. The study is submitted with a unique request ID.
+5. Respondent credits are reserved.
+6. Administrators review and manage the study.
+7. The user receives notifications about status changes.
+8. Rejected studies have their reserved respondent credits returned.
+
+## Local Installation
+
+### Requirements
+
+- PHP 8.2 or newer
+- Composer
+- Node.js and npm
+- MySQL or SQLite
+
+### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/DarkoMitt/ImpalaResearch.git
+cd ImpalaResearch
 ```
 
-Install PHP dependencies:
+### 2. Install dependencies
 
 ```bash
 composer install
-```
-
-Install Node dependencies:
-
-```bash
 npm install
 ```
 
-Create environment file:
+### 3. Configure the environment
+
+Copy `.env.example` to `.env`.
 
 ```bash
 cp .env.example .env
 ```
 
-Generate application key:
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Generate the application key:
 
 ```bash
 php artisan key:generate
 ```
 
-Run the application:
+Configure the database connection in `.env`.
+
+For MySQL, set the appropriate `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` values.
+
+For SQLite, create `database/database.sqlite` and configure `DB_CONNECTION=sqlite`.
+
+### 4. Run migrations and seed subscription plans
+
+```bash
+php artisan migrate
+php artisan db:seed --class=SubscriptionPlanSeeder
+```
+
+### 5. Start the application
+
+Run the Laravel server:
 
 ```bash
 php artisan serve
+```
+
+In a second terminal, start Vite:
+
+```bash
 npm run dev
 ```
 
-Application will be available at:
+Visit:
 
-```text
-http://127.0.0.1:8000
+`http://127.0.0.1:8000`
+
+## Email Verification in Local Development
+
+Email verification requires a configured mail transport.
+
+For local testing, Mailpit can capture outgoing messages without delivering real emails.
+
+Example `.env` configuration:
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_FROM_ADDRESS="noreply@impala.test"
+MAIL_FROM_NAME="Impala Research"
 ```
 
----
+Mailpit's default web interface is available at:
 
-## Notes
+`http://127.0.0.1:8025`
 
-This implementation follows the provided Figma design and serves as a frontend foundation for future platform development.
+## Demo Setup
 
-Additional features such as:
+The project includes a dedicated `DemoSeeder` for local demonstration.
 
-* User management
-* Admin panel
-* Authentication backend
-* Database storage
-* Email notifications
-* Content management
+It creates:
 
-can be integrated in future project phases.
+- One demo administrator
+- One demo researcher
+- An active Monthly demo subscription
+- Three example research requests
+- Sample respondent credit allocations
 
----
+The demo studies represent different stages of the research workflow.
 
-## Developed By
+### Run the DemoSeeder
 
-Darko Mitovski
+Set a private demo password in `.env`:
 
-Software Engineering Student
-Brainster Next College
+```dotenv
+DEMO_PASSWORD="replace-with-your-own-strong-password"
+```
 
+Then execute:
+
+```bash
+php artisan config:clear
+php artisan db:seed --class=DemoSeeder
+```
+
+The demo seeder is restricted to local and testing environments.
+
+### Demo Accounts
+
+| Role | Email |
+|---|---|
+| Administrator | `admin.demo@impala.test` |
+| Researcher | `researcher.demo@impala.test` |
+
+Both accounts use the locally configured `DEMO_PASSWORD` when first created.
+
+**Security:** Never commit your `.env` file or demo credentials to a public repository. Demo accounts are intended for local development, not production deployment.
+
+## Testing
+
+Run the Laravel test suite:
+
+```bash
+php artisan test --compact
+```
+
+At the latest local verification, the project passed **120 tests with 476 assertions**.
+
+## Project Status
+
+The application currently supports the core research request, subscription management, administrator workflow, notification, and CMS functionality.
+
+The project is maintained as a portfolio demonstration.
+
+### Current Limitations
+
+- Live payment checkout is not enabled in the demo interface.
+- A production email delivery service is not configured.
+- The application does not execute research experiments or collect eye-tracking or reaction-time data.
+- Some planned services, including Assisted Research, are not yet available as complete end-user workflows.
+- Production deployment and hosting are not included in the current demo setup.
+
+
+## Screenshots
+
+### Landing Page
+![Impala Research Landing Page](docs/screenshots/01-landing-page.png)
+
+### Research Study Builder
+![Research Study Builder](docs/screenshots/02-study-builder.png)
+
+### User Dashboard
+![User Dashboard](docs/screenshots/03-user-dashboard.png)
+
+### My Research Studies
+![My Research Studies](docs/screenshots/04-my-studies.png)
+
+### Admin Dashboard
+![Admin Dashboard](docs/screenshots/05-admin-dashboard.png)
+
+### Admin Research Management
+![Admin Research Management](docs/screenshots/06-admin-research.png)
+
+
+## Author
+
+**Darko Mitovski**
+
+Software Engineering
+
+GitHub: [DarkoMitt](https://github.com/DarkoMitt)
+
+## Acknowledgment
+
+The website's visual direction originated from a Figma design prepared during the Impala Research project. This repository documents the web application implementation and subsequent platform development.
